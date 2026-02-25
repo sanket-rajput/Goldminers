@@ -55,6 +55,7 @@ Generate ONE specific, natural-language follow-up question that would best \
 help differentiate between these conditions.
 The question should be easy for a layperson to understand.
 Ask about only ONE thing.
+Use warm language with an emoji (💛 or 🌡️).
 
 Return ONLY the question text, nothing else."""
 
@@ -79,7 +80,7 @@ Symptoms so far: {symptoms}
 Duration known: {duration}
 Severity known: {intensity}
 Age known: {age}
-Turn number: {turn_number}
+Turn number: {turn_number} (gathering turns only)
 Missing data: {missing}
 Candidate diseases: {candidates}
 Last question asked: {last_question}
@@ -88,20 +89,22 @@ Patient's last answer: {last_answer}
 === CONVERSATION SO FAR ===
 {conversation_history}
 
-DECISION CRITERIA — you should say READY only when:
-- At least 2-3 symptoms are reported
+DECISION CRITERIA — say READY only when:
+- At least 2-3 symptoms are reported with reasonable detail
 - Duration is known (how long they've had symptoms)
 - Some indication of severity is available
-- You have enough context to make a reasonable differential
+- You have enough context to differentiate between candidate diseases
 
 If ANY critical piece is still missing that would significantly change \
-the assessment, ask ONE more question.
+the assessment, ask ONE more focused question to help differentiate \
+between the candidate diseases.
 
 Rules:
 - Maximum 5 follow-up questions total
 - If turn >= 5, ALWAYS respond READY
 - NEVER repeat a question already asked in the conversation above
-- Be empathetic and natural
+- Be empathetic and natural with 1-2 emojis
+- Focus on questions that help discriminate between candidate diseases
 
 Return EITHER the word "READY" or a single follow-up question. Nothing else."""
 

@@ -52,8 +52,11 @@ class SessionData(BaseModel):
     severity_state: dict = Field(default_factory=dict)
     last_question: str = ""
     turn_count: int = 0
+    patient_name: str = ""
     patient_age: str = ""
     patient_gender: str = ""
+    patient_country: str = ""
+    phase: str = "greeting"  # greeting | gathering | diagnosis
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -68,6 +71,10 @@ class SessionData(BaseModel):
 
 class StartSessionRequest(BaseModel):
     user_id: str
+    name: str = ""
+    age: str = ""
+    gender: str = ""
+    country: str = ""
 
 
 class StartSessionResponse(BaseModel):

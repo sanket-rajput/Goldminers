@@ -169,6 +169,20 @@ async def start_session(req: StartSessionRequest):
         raise HTTPException(503, "Session service unavailable")
 
     sid = firebase_mgr.create_session(req.user_id)
+
+    # Store optional context fields if provided at session start
+    update_fields = {}
+    if req.name:
+        update_fields["patient_name"] = req.name
+    if req.age:
+        update_fields["patient_age"] = req.age
+    if req.gender:
+        update_fields["patient_gender"] = req.gender
+    if req.country:
+        update_fields["patient_country"] = req.country
+    if update_fields:
+        firebase_mgr.update_session(req.user_id, sid, update_fields)
+
     return StartSessionResponse(session_id=sid)
 
 

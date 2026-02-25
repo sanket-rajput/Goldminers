@@ -31,12 +31,29 @@ OTC_MEDICATIONS: list[dict] = [
             "toothache", "back pain", "joint pain", "sore throat",
             "mild pain", "pyrexia",
         ],
-        "adult_dosage": "500–1000 mg every 4–6 hours as needed. Maximum 4000 mg (4 g) per 24 hours.",
+        "adult_dosage": "500–650 mg every 4–6 hours as needed. Maximum 4000 mg (4 g) per 24 hours.",
         "child_note": "Dosage depends on weight. Consult a pediatrician for children's dosing.",
         "warnings": [
             "Do not exceed 4 g/day — risk of liver damage",
             "Avoid if you have liver disease",
             "Do not combine with alcohol",
+        ],
+    },
+    {
+        "name": "Ibuprofen",
+        "indications": [
+            "headache", "body pain", "myalgia", "back pain",
+            "joint pain", "toothache", "menstrual cramps",
+            "muscle pain", "mild pain", "inflammation",
+        ],
+        "adult_dosage": "200–400 mg every 4–6 hours as needed. Maximum 1200 mg per 24 hours (OTC).",
+        "child_note": "5–10 mg/kg every 6–8 hours. Use only for children >6 months. Consult pediatrician.",
+        "warnings": [
+            "Take with food to reduce stomach irritation",
+            "Avoid if you have stomach ulcers or kidney disease",
+            "Not recommended during pregnancy (especially 3rd trimester)",
+            "Do NOT combine with other NSAIDs or aspirin",
+            "Avoid if you have asthma triggered by NSAIDs",
         ],
     },
     {
@@ -203,7 +220,7 @@ class MedicinePolicy:
         suggestions: list[dict],
         severity: str = "mild",
     ) -> str:
-        """Format medication suggestions into readable text."""
+        """Format medication suggestions into readable text with emojis."""
         if not suggestions:
             return ""
 
@@ -211,17 +228,17 @@ class MedicinePolicy:
 
         if severity == "severe":
             lines.append(
-                "⚠️ Given the severity, please prioritize seeing a doctor. "
+                "🚨 Given the severity, please prioritize seeing a doctor. "
                 "These are only for temporary relief:\n"
             )
 
         for i, med in enumerate(suggestions, 1):
             lines.append(f"{i}. **{med['name']}**")
-            lines.append(f"   Dosage: {med['dosage']}")
+            lines.append(f"   💉 Dosage: {med['dosage']}")
             if med.get("age_note"):
                 lines.append(f"   ⚠️ {med['age_note']}")
             for w in med.get("warnings", []):
-                lines.append(f"   • {w}")
+                lines.append(f"   ⚠️ {w}")
             lines.append("")
 
         lines.append(f"\n{DISCLAIMER}")
