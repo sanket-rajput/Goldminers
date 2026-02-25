@@ -1,0 +1,23 @@
+# ─── Core Framework ───────────────────────────────────
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# ─── ML / Embeddings ─────────────────────────────────
+sentence-transformers>=2.2.2
+faiss-cpu>=1.7.4
+numpy>=1.24.0
+torch>=2.0.0
+
+# ─── Firebase ─────────────────────────────────────────
+firebase-admin>=6.2.0
+
+# ─── LLM Clients ─────────────────────────────────────
+groq>=0.4.0
+httpx>=0.25.0
+
+# ─── Utilities ────────────────────────────────────────
+python-dotenv>=1.0.0
+orjson>=3.9.0
+sse-starlette>=1.8.0
