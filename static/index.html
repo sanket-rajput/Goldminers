@@ -246,6 +246,97 @@
     #messages::-webkit-scrollbar { width: 6px; }
     #messages::-webkit-scrollbar-track { background: transparent; }
     #messages::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+    /* ─── Hospital feature ─────────────────────────── */
+    .hospital-btn-wrap {
+      align-self: flex-start;
+      margin-top: 0.3rem;
+    }
+    .find-hospitals-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.1rem;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      animation: fadeIn 0.4s ease;
+    }
+    .find-hospitals-btn:hover { opacity: 0.88; }
+    .find-hospitals-btn:active { transform: scale(0.96); }
+    .find-hospitals-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .hospital-cards {
+      align-self: flex-start;
+      width: 100%;
+      max-width: 88%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      animation: fadeIn 0.4s ease;
+    }
+    .hospital-cards .cards-header {
+      font-size: 0.85rem;
+      color: #4ade80;
+      font-weight: 600;
+      padding: 0 0.2rem;
+    }
+    .hospital-card {
+      background: #1e293b;
+      border: 1px solid #1e4035;
+      border-radius: 14px;
+      padding: 0.8rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+    .hospital-card .h-name {
+      font-weight: 700;
+      color: #e2e8f0;
+      font-size: 0.95rem;
+    }
+    .hospital-card .h-meta {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .hospital-card .h-rating {
+      color: #fbbf24;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .hospital-card .h-phone {
+      color: #94a3b8;
+      font-size: 0.83rem;
+    }
+    .hospital-card .h-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.82rem;
+      color: #38bdf8;
+      text-decoration: none;
+      margin-top: 0.2rem;
+      width: fit-content;
+    }
+    .hospital-card .h-link:hover { text-decoration: underline; }
+    .hospital-error {
+      align-self: flex-start;
+      background: #1e293b;
+      border: 1px solid #7f1d1d;
+      border-radius: 14px;
+      padding: 0.7rem 1rem;
+      color: #fca5a5;
+      font-size: 0.88rem;
+      max-width: 88%;
+      animation: fadeIn 0.3s ease;
+    }
   </style>
 </head>
 <body>
@@ -290,8 +381,10 @@
   let userName  = "";
   let currentPhase = "greeting";
   let sending   = false;
+  let lastDiagnosedDisease = ""; // top disease from assessment
 
   const API = window.location.origin;
+  const HOSPITAL_API = `${window.location.origin}/proxy/hospitals`;
 
   // ─── Refs ───────────────────────────────────────────
   const welcomeEl  = document.getElementById("welcome-screen");
@@ -472,6 +565,14 @@
             if (data.phase) {
               updatePhase(data.phase);
             }
+            // Capture top disease when assessment is ready
+            if (data.candidates && data.candidates.length > 0) {
+              lastDiagnosedDisease = data.candidates[0].disease || "";
+            }
+            // Show hospital button after assessment phase
+            if (data.phase === "awaiting_choice" && lastDiagnosedDisease) {
+              showHospitalButton();
+            }
           }
         } catch (_) { /* skip non-JSON */ }
       }
@@ -504,6 +605,115 @@
 
   function escapeHtml(t) {
     return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  // ─── Hospital feature ──────────────────────────────
+
+  function showHospitalButton() {
+    // Avoid duplicate buttons
+    if (document.getElementById("hospital-btn")) return;
+    const wrap = document.createElement("div");
+    wrap.className = "hospital-btn-wrap";
+    const btn = document.createElement("button");
+    btn.id = "hospital-btn";
+    btn.className = "find-hospitals-btn";
+    btn.innerHTML = "🏥 Find Nearby Hospitals / Clinics";
+    btn.onclick = findNearbyHospitals;
+    wrap.appendChild(btn);
+    messagesEl.appendChild(wrap);
+    scrollToBottom();
+  }
+
+  async function findNearbyHospitals() {
+    const btn = document.getElementById("hospital-btn");
+    if (btn) { btn.disabled = true; btn.innerHTML = "📍 Getting your location…"; }
+
+    let lat, lon;
+    try {
+      const pos = await new Promise((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
+      );
+      lat = pos.coords.latitude.toFixed(6);
+      lon = pos.coords.longitude.toFixed(6);
+    } catch (err) {
+      if (btn) { btn.disabled = false; btn.innerHTML = "🏥 Find Nearby Hospitals / Clinics"; }
+      renderHospitalError("📍 Location access denied or unavailable. Please allow location access and try again.");
+      return;
+    }
+
+    if (btn) { btn.innerHTML = "⏳ Searching nearby hospitals…"; }
+
+    // Sanitize disease name for URL
+    const disease = lastDiagnosedDisease
+      .toLowerCase()
+      .replace(/[^a-z0-9 ]/g, "")
+      .trim()
+      .split(" ")[0]; // first keyword only
+
+    const url = `${HOSPITAL_API}?disease=${encodeURIComponent(disease)}&lat=${lat}&lon=${lon}`;
+
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      const data = await res.json();
+      renderHospitalCards(data.results || [], disease, lat, lon);
+      if (btn) btn.innerHTML = "🔄 Search Again";
+      if (btn) btn.disabled = false;
+    } catch (err) {
+      if (btn) { btn.disabled = false; btn.innerHTML = "🏥 Find Nearby Hospitals / Clinics"; }
+      renderHospitalError("⚠️ Could not fetch hospital data: " + err.message +
+        "\nMake sure the hospital service is running at " + HOSPITAL_API);
+    }
+  }
+
+  function renderHospitalCards(results, disease, lat, lon) {
+    // Remove any existing cards block
+    const old = document.getElementById("hospital-cards");
+    if (old) old.remove();
+
+    if (!results || results.length === 0) {
+      renderHospitalError("No nearby hospitals found for \"" + disease + "\" at your location.");
+      return;
+    }
+
+    const wrap = document.createElement("div");
+    wrap.id = "hospital-cards";
+    wrap.className = "hospital-cards";
+
+    const header = document.createElement("div");
+    header.className = "cards-header";
+    header.textContent = `🏥 ${results.length} nearby hospital${results.length > 1 ? 's' : ''} for "${disease}" near you:`;
+    wrap.appendChild(header);
+
+    results.forEach(h => {
+      const card = document.createElement("div");
+      card.className = "hospital-card";
+
+      const stars = h.rating ? "⭐".repeat(Math.round(h.rating)) + ` ${h.rating}` : "";
+
+      card.innerHTML = `
+        <div class="h-name">${escapeHtml(h.name || "Unknown")}</div>
+        <div class="h-meta">
+          ${stars ? `<span class="h-rating">${stars}</span>` : ""}
+          ${h.phone ? `<span class="h-phone">📞 ${escapeHtml(h.phone)}</span>` : ""}
+        </div>
+        ${h.link ? `<a class="h-link" href="${escapeHtml(h.link)}" target="_blank" rel="noopener">📍 Open in Google Maps ↗</a>` : ""}
+      `;
+      wrap.appendChild(card);
+    });
+
+    messagesEl.appendChild(wrap);
+    scrollToBottom();
+  }
+
+  function renderHospitalError(msg) {
+    const old = document.getElementById("hospital-cards");
+    if (old) old.remove();
+    const el = document.createElement("div");
+    el.className = "hospital-error";
+    el.textContent = msg;
+    messagesEl.appendChild(el);
+    scrollToBottom();
   }
 
   // Enhanced markdown renderer with emoji + section support

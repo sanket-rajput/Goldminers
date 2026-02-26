@@ -25,9 +25,11 @@ from typing import AsyncGenerator
 
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+import httpx
+
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, HTMLResponse, FileResponse
+from fastapi.responses import StreamingResponse, HTMLResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.models import (
@@ -273,6 +275,37 @@ async def chat_ui():
     if index.exists():
         return FileResponse(str(index))
     return HTMLResponse("<h1>BluCare API is running. No UI found.</h1>")
+
+
+# ═══════════════════════════════════════════════════════════
+# Hospital service proxy  (avoids browser CORS restriction)
+# ═══════════════════════════════════════════════════════════
+
+HOSPITAL_SERVICE_URL = "https://thiago-lathy-smarmily.ngrok-free.dev/hospitals"
+
+
+@app.get("/proxy/hospitals")
+async def proxy_hospitals(
+    disease: str = Query(..., description="Diagnosed disease name"),
+    lat: float = Query(..., description="Patient latitude"),
+    lon: float = Query(..., description="Patient longitude"),
+):
+    """Forward hospital lookup to the internal service, bypassing browser CORS."""
+    target = f"{HOSPITAL_SERVICE_URL}?disease={disease}&lat={lat}&lon={lon}"
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.get(
+                HOSPITAL_SERVICE_URL,
+                params={"disease": disease, "lat": lat, "lon": lon},
+            )
+            resp.raise_for_status()
+            return JSONResponse(content=resp.json())
+    except httpx.ConnectError:
+        raise HTTPException(status_code=502, detail=f"Cannot reach hospital service at {HOSPITAL_SERVICE_URL}")
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Hospital service timed out after 30 s")
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(status_code=exc.response.status_code, detail=exc.response.text)
 
 
 # ═══════════════════════════════════════════════════════════
