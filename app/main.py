@@ -281,7 +281,7 @@ async def chat_ui():
 # Hospital service proxy  (avoids browser CORS restriction)
 # ═══════════════════════════════════════════════════════════
 
-HOSPITAL_SERVICE_URL = "https://thiago-lathy-smarmily.ngrok-free.dev/hospitals"
+HOSPITAL_SERVICE_URL = "http://127.0.0.1:8001/hospitals"
 
 
 @app.get("/proxy/hospitals")
