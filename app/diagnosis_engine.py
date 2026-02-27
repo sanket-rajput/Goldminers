@@ -841,6 +841,26 @@ class DiagnosisEngine:
             self.firebase.update_session(
                 user_id, session_id, {"phase": "awaiting_choice"}
             )
+            return
+
+        # --- PHASE: COMPLETED (session finished) ---
+        if state.phase == "completed":
+            completed_msg = (
+                "This consultation session has been completed. 💙\n\n"
+                "You can **download your PDF report** using the button above, "
+                "or start a **New Session** for a new consultation.\n\n"
+                "Take care and stay healthy! 🌟"
+            )
+            for token in completed_msg.split(" "):
+                yield self._sse({"token": token + " "})
+            yield self._sse({
+                "done": True,
+                "phase": "completed",
+            })
+            self.firebase.add_message(
+                user_id, session_id, "assistant", completed_msg
+            )
+            return
 
     # ═══════════════════════════════════════════════════════
     # PHASE 0 — Greeting / Context Collection
@@ -1211,6 +1231,11 @@ class DiagnosisEngine:
             user_id, session_id, "assistant", full_response
         )
 
+        # Save diagnosis summary for PDF / sessions page
+        self.firebase.update_session(
+            user_id, session_id, {"diagnosis_summary": full_response}
+        )
+
         candidate_data = [
             {
                 "disease_name": r.disease.disease_name,
@@ -1247,6 +1272,11 @@ class DiagnosisEngine:
     ) -> AsyncGenerator[str, None]:
         """Show the specific sections the user requested."""
 
+        # Track raw structured data for PDF / session storage
+        raw_medications = []
+        raw_remedies = []
+        raw_tests = ""
+
         # Re-extract symptoms from session
         symptoms = list(session.extracted_symptoms)
         age = session.patient_age
@@ -1280,6 +1310,7 @@ class DiagnosisEngine:
                 age=age,
                 severity=severity_level,
             )
+            raw_medications = med_suggestions
             med_text = self.medicine.format_for_response(
                 med_suggestions, severity=severity_level
             )
@@ -1299,6 +1330,7 @@ class DiagnosisEngine:
                 disease_names=disease_names,
                 symptoms=symptoms,
             )
+            raw_remedies = remedy_matches
             remedy_text = self.remedies.format_for_response(remedy_matches)
             region_food = _get_region_food_note(session.patient_country)
             section_data_parts.append(
@@ -1329,6 +1361,7 @@ class DiagnosisEngine:
                 duration=duration,
                 severity=severity_level,
             )
+            raw_tests = test_recs
             section_data_parts.append(
                 f"=== TEST RECOMMENDATIONS ===\n{test_recs}"
             )
@@ -1371,9 +1404,24 @@ class DiagnosisEngine:
             full_response += token
             yield self._sse({"token": token})
 
+        # Build detail data for PDF / session storage
+        detail_data = {
+            "medications": raw_medications,
+            "remedies": raw_remedies,
+            "tests": raw_tests,
+            "sections_shown": [k for k, v in choices.items() if v],
+        }
+
+        # Mark session as completed
+        self.firebase.update_session(user_id, session_id, {
+            "phase": "completed",
+            "detail_data": detail_data,
+        })
+
         yield self._sse({
             "done": True,
-            "phase": "awaiting_choice",
+            "phase": "completed",
+            "detail_data": detail_data,
         })
 
         self.firebase.add_message(

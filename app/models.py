@@ -56,7 +56,10 @@ class SessionData(BaseModel):
     patient_age: str = ""
     patient_gender: str = ""
     patient_country: str = ""
-    phase: str = "greeting"  # greeting | gathering | diagnosis
+    phase: str = "greeting"  # greeting | gathering | diagnosis | awaiting_choice | completed
+    diagnosis_summary: str = ""
+    detail_data: dict = Field(default_factory=dict)
+    is_temporary: bool = False
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
@@ -75,6 +78,7 @@ class StartSessionRequest(BaseModel):
     age: str = ""
     gender: str = ""
     country: str = ""
+    temporary: bool = False
 
 
 class StartSessionResponse(BaseModel):

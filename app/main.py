@@ -18,6 +18,7 @@ Endpoints:
 
 from __future__ import annotations
 
+import io
 import json
 import asyncio
 from contextlib import asynccontextmanager
@@ -27,7 +28,7 @@ from pathlib import Path
 
 import httpx
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, HTMLResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -182,6 +183,8 @@ async def start_session(req: StartSessionRequest):
         update_fields["patient_gender"] = req.gender
     if req.country:
         update_fields["patient_country"] = req.country
+    if req.temporary:
+        update_fields["is_temporary"] = True
     if update_fields:
         firebase_mgr.update_session(req.user_id, sid, update_fields)
 
@@ -260,6 +263,125 @@ async def trigger_ingestion(use_llm: bool = False, force: bool = False):
 
 
 # ═══════════════════════════════════════════════════════════
+# POST /generate-pdf  -- Download consultation report as PDF
+# ═══════════════════════════════════════════════════════════
+
+@app.post("/generate-pdf")
+async def generate_pdf(request: Request):
+    """Generate a professional PDF report of the diagnostic conversation."""
+    try:
+        from app.pdf_generator import generate_report_pdf
+    except ImportError:
+        raise HTTPException(
+            status_code=500,
+            detail="PDF generation unavailable. Install reportlab: pip install reportlab",
+        )
+
+    try:
+        body = await request.json()
+        user_id = body.get("user_id", "")
+        session_id_req = body.get("session_id", "")
+
+        # If session info provided, pull rich data from the session
+        if user_id and session_id_req and firebase_mgr:
+            session = firebase_mgr.get_session(user_id, session_id_req)
+            if session:
+                messages = session.previous_messages
+                diag = session.diagnosis_summary
+                detail = session.detail_data or {}
+                meds = detail.get("medications", [])
+                rems = detail.get("remedies", [])
+                tests = detail.get("tests", "")
+                syms = list(session.extracted_symptoms)
+                ts = session.created_at
+            else:
+                messages = body.get("messages", [])
+                diag = body.get("diagnosis", "")
+                meds, rems, tests, syms = [], [], "", []
+                ts = body.get("timestamp", "")
+        else:
+            messages = body.get("messages", [])
+            diag = body.get("diagnosis", "")
+            meds = body.get("medications", [])
+            rems = body.get("remedies", [])
+            tests = body.get("tests", "")
+            syms = body.get("symptoms", [])
+            ts = body.get("timestamp", "")
+
+        buffer = generate_report_pdf(
+            messages=messages,
+            diagnosis=diag,
+            symptoms=syms,
+            medications=meds,
+            remedies=rems,
+            tests=tests,
+            session_id=session_id_req,
+            timestamp=ts,
+        )
+
+        date_part = ts.split("T")[0] if "T" in str(ts) else "report"
+        filename = f"RagBluCare_Report_{date_part}.pdf"
+
+        return StreamingResponse(
+            buffer,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    except Exception as exc:
+        logger.error("PDF generation error: %s", exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ═══════════════════════════════════════════════════════════
+# GET /api/sessions  -- List all sessions for a user
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/api/sessions")
+async def list_sessions(user_id: str = Query(..., description="User identifier")):
+    """Return summary list of all sessions for a user."""
+    if not firebase_mgr:
+        raise HTTPException(503, "Session service unavailable")
+    sessions = firebase_mgr.list_sessions(user_id)
+    return {"sessions": sessions}
+
+
+# ═══════════════════════════════════════════════════════════
+# GET /api/sessions/{session_id}  -- Full session detail
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/api/sessions/{session_id}")
+async def get_session_detail(
+    session_id: str,
+    user_id: str = Query(..., description="User identifier"),
+):
+    """Return full session data for read-only viewing."""
+    if not firebase_mgr:
+        raise HTTPException(503, "Session service unavailable")
+    session = firebase_mgr.get_session(user_id, session_id)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    return session.model_dump()
+
+
+# ═══════════════════════════════════════════════════════════
+# DELETE /api/sessions/{session_id}  -- Delete a session
+# ═══════════════════════════════════════════════════════════
+
+@app.delete("/api/sessions/{session_id}")
+async def delete_session(
+    session_id: str,
+    user_id: str = Query(..., description="User identifier"),
+):
+    """Delete a session (used for temporary sessions cleanup)."""
+    if not firebase_mgr:
+        raise HTTPException(503, "Session service unavailable")
+    deleted = firebase_mgr.delete_session(user_id, session_id)
+    if not deleted:
+        raise HTTPException(404, "Session not found")
+    return {"status": "deleted", "session_id": session_id}
+
+
+# ═══════════════════════════════════════════════════════════
 # Static files & Chat UI
 # ═══════════════════════════════════════════════════════════
 
@@ -277,11 +399,21 @@ async def chat_ui():
     return HTMLResponse("<h1>BluCare API is running. No UI found.</h1>")
 
 
+@app.get("/my-sessions", response_class=HTMLResponse)
+async def sessions_page():
+    """Serve the session history page."""
+    sessions_file = STATIC_DIR / "sessions.html"
+    if sessions_file.exists():
+        return FileResponse(str(sessions_file))
+    return HTMLResponse("<h1>Sessions page not found.</h1>")
+
+
 # ═══════════════════════════════════════════════════════════
 # Hospital service proxy  (avoids browser CORS restriction)
 # ═══════════════════════════════════════════════════════════
 
 HOSPITAL_SERVICE_URL = "http://127.0.0.1:8001/hospitals"
+AMBULANCE_SERVICE_URL = "http://127.0.0.1:8001/ambulance"
 
 
 @app.get("/proxy/hospitals")
@@ -306,6 +438,41 @@ async def proxy_hospitals(
         raise HTTPException(status_code=504, detail="Hospital service timed out after 30 s")
     except httpx.HTTPStatusError as exc:
         raise HTTPException(status_code=exc.response.status_code, detail=exc.response.text)
+
+
+# ═══════════════════════════════════════════════════════════
+# Ambulance service proxy  (avoids browser CORS restriction)
+# ═══════════════════════════════════════════════════════════
+
+@app.get("/proxy/ambulance")
+async def proxy_ambulance(
+    lat: float = Query(..., description="Patient latitude"),
+    lon: float = Query(..., description="Patient longitude"),
+):
+    """Forward ambulance lookup to the internal service, bypassing browser CORS."""
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.get(
+                AMBULANCE_SERVICE_URL,
+                params={"lat": lat, "lon": lon},
+            )
+            resp.raise_for_status()
+            return JSONResponse(content=resp.json())
+    except httpx.ConnectError:
+        raise HTTPException(status_code=502, detail=f"Cannot reach ambulance service at {AMBULANCE_SERVICE_URL}")
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Ambulance service timed out after 30 s")
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(status_code=exc.response.status_code, detail=exc.response.text)
+
+
+@app.get("/nearby-ambulance", response_class=HTMLResponse)
+async def ambulance_page():
+    """Serve the nearby ambulance page."""
+    amb_file = STATIC_DIR / "ambulance.html"
+    if amb_file.exists():
+        return FileResponse(str(amb_file))
+    return HTMLResponse("<h1>Ambulance page not found.</h1>")
 
 
 # ═══════════════════════════════════════════════════════════

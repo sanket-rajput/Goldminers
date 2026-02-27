@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BluCare 💙 — AI Health Companion</title>
+  <title>BluCare — AI Health Companion</title>
   <style>
     /* ─── Reset + base ───────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -99,6 +99,27 @@
       -webkit-text-fill-color: transparent;
     }
     .chat-header .info span { font-size: 0.78rem; color: #4ade80; }
+    .header-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 0.5rem;
+    }
+    .header-btn {
+      padding: 0.4rem 0.75rem;
+      border-radius: 10px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #94a3b8;
+      font-size: 0.78rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .header-btn:hover { border-color: #38bdf8; color: #e2e8f0; }
 
     /* Messages */
     #messages {
@@ -234,6 +255,7 @@
     .phase-gathering { background: #713f12; color: #fbbf24; }
     .phase-diagnosis { background: #7c2d12; color: #fb923c; }
     .phase-choice { background: #4c1d95; color: #c4b5fd; }
+    .phase-completed { background: #14532d; color: #86efac; }
 
     /* Animations */
     @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
@@ -337,28 +359,127 @@
       max-width: 88%;
       animation: fadeIn 0.3s ease;
     }
+
+    /* ─── Action buttons (PDF, New Session, Hospital) ──── */
+    .action-btns-wrap {
+      align-self: flex-start;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.4rem;
+      animation: fadeIn 0.4s ease;
+    }
+    .action-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.6rem 1.1rem;
+      border-radius: 12px;
+      border: none;
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .action-btn:hover { opacity: 0.88; }
+    .action-btn:active { transform: scale(0.96); }
+    .action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .pdf-download-btn { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+    .new-session-btn { background: linear-gradient(135deg, #38bdf8, #818cf8); }
+    .hospital-action-btn { background: linear-gradient(135deg, #10b981, #059669); }
+    .temp-session-btn { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .temp-badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: #78350f;
+      color: #fbbf24;
+      margin-left: 6px;
+      font-weight: 500;
+    }
+
+    .action-btn .spin {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Disclaimer banner ────────────────────────── */
+    .disclaimer {
+      align-self: center;
+      background: #1c1917;
+      border: 1px solid #44403c;
+      border-radius: 10px;
+      padding: 0.6rem 1rem;
+      font-size: 0.75rem;
+      color: #a8a29e;
+      text-align: center;
+      margin: 0.5rem 0;
+      max-width: 88%;
+    }
+
+    /* ─── Session completed overlay ────────────────── */
+    .session-complete-banner {
+      align-self: center;
+      background: linear-gradient(135deg, #065f46, #14532d);
+      border: 1px solid #16a34a;
+      border-radius: 14px;
+      padding: 1rem 1.5rem;
+      text-align: center;
+      animation: fadeIn 0.5s ease;
+      margin: 0.5rem 0;
+    }
+    .session-complete-banner h3 {
+      color: #86efac;
+      margin-bottom: 0.4rem;
+      font-size: 1rem;
+    }
+    .session-complete-banner p {
+      color: #bbf7d0;
+      font-size: 0.85rem;
+    }
+
+    /* Input disabled state */
+    .input-bar.disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
 
   <!-- Welcome Screen -->
   <div id="welcome-screen">
-    <h1>💙 BluCare</h1>
+    <h1>BluCare</h1>
     <p>Your AI Health Companion — Smart, Caring, Always Here</p>
     <div class="input-group">
-      <input id="name-input" type="text" placeholder="Your name…" autocomplete="off" />
-      <button id="start-btn" onclick="startSession()">Start Chat 💛</button>
+      <input id="name-input" type="text" placeholder="Your name..." autocomplete="off" />
+      <button id="start-btn" onclick="startSession(false)">Start Chat</button>
+      <button id="temp-btn" class="action-btn temp-session-btn" style="padding:0.85rem; border-radius:14px; font-size:1rem; justify-content:center;" onclick="startSession(true)">Quick Consult (Temp)</button>
     </div>
+    <p style="font-size:0.75rem; color:#64748b; margin-top:0.8rem;">Quick Consult: session is not saved after you finish.</p>
   </div>
 
   <!-- Chat Screen -->
   <div id="chat-screen">
     <div class="chat-header">
-      <div class="avatar">💙</div>
+      <div class="avatar">+</div>
       <div class="info">
         <h2>BluCare Assistant</h2>
-        <span>● Online</span>
+        <span>Online</span>
         <span class="phase-badge phase-greeting" id="phase-badge">Greeting</span>
+      </div>
+      <div class="header-actions">
+        <a class="header-btn" href="/my-sessions" id="sessions-link">Sessions</a>
+        <button class="header-btn" id="new-session-header-btn" onclick="startNewSession()">+ New</button>
+        <a class="header-btn" href="/nearby-ambulance" style="background:#dc2626;color:#fff;border-color:#dc2626;">🚑 Ambulance</a>
       </div>
     </div>
 
@@ -368,23 +489,43 @@
       <span></span><span></span><span></span>
     </div>
 
-    <div class="input-bar">
-      <input id="msg-input" type="text" placeholder="Type your message…" autocomplete="off" />
-      <button id="send-btn" onclick="sendMessage()">➤</button>
+    <div class="input-bar" id="input-bar">
+      <input id="msg-input" type="text" placeholder="Type your message..." autocomplete="off" />
+      <button id="send-btn" onclick="sendMessage()">&#10148;</button>
     </div>
   </div>
 
 <script>
   // ─── State ──────────────────────────────────────────
-  let userId   = "";
+  let userId    = "";
   let sessionId = "";
   let userName  = "";
   let currentPhase = "greeting";
   let sending   = false;
-  let lastDiagnosedDisease = ""; // top disease from assessment
+  let lastDiagnosedDisease = "";
+  let conversationLog = [];
+  let isTemporary = false;  // temp session flag
 
   const API = window.location.origin;
   const HOSPITAL_API = `${window.location.origin}/proxy/hospitals`;
+
+  // ─── Persistent userId via localStorage ─────────────
+  function getOrCreateUserId(name) {
+    const key = "blucare_user_id";
+    let stored = localStorage.getItem(key);
+    if (stored) return stored;
+    const id = name.toLowerCase().replace(/\s+/g, "_") + "_" + Date.now();
+    localStorage.setItem(key, id);
+    return id;
+  }
+
+  function getStoredUserName() {
+    return localStorage.getItem("blucare_user_name") || "";
+  }
+
+  function storeUserName(name) {
+    localStorage.setItem("blucare_user_name", name);
+  }
 
   // ─── Refs ───────────────────────────────────────────
   const welcomeEl  = document.getElementById("welcome-screen");
@@ -396,10 +537,15 @@
   const startBtn   = document.getElementById("start-btn");
   const sendBtn    = document.getElementById("send-btn");
   const phaseBadge = document.getElementById("phase-badge");
+  const inputBar   = document.getElementById("input-bar");
 
   // ─── Enter-key ──────────────────────────────────────
-  nameInput.addEventListener("keydown", e => { if (e.key === "Enter") startSession(); });
+  nameInput.addEventListener("keydown", e => { if (e.key === "Enter") startSession(false); });
   msgInput.addEventListener("keydown",  e => { if (e.key === "Enter" && !e.shiftKey) sendMessage(); });
+
+  // Pre-fill name if returning user
+  const savedName = getStoredUserName();
+  if (savedName) nameInput.value = savedName;
 
   // ─── Update phase badge ─────────────────────────────
   function updatePhase(phase) {
@@ -407,32 +553,119 @@
     phaseBadge.className = "phase-badge";
     if (phase === "greeting") {
       phaseBadge.classList.add("phase-greeting");
-      phaseBadge.textContent = "👋 Greeting";
-      msgInput.placeholder = "Tell me about yourself…";
+      phaseBadge.textContent = "Greeting";
+      msgInput.placeholder = "Tell me about yourself...";
     } else if (phase === "gathering") {
       phaseBadge.classList.add("phase-gathering");
-      phaseBadge.textContent = "🌡️ Gathering";
-      msgInput.placeholder = "Describe your symptoms…";
+      phaseBadge.textContent = "Gathering";
+      msgInput.placeholder = "Describe your symptoms...";
     } else if (phase === "awaiting_choice") {
       phaseBadge.classList.add("phase-choice");
-      phaseBadge.textContent = "🎯 Your Choice";
-      msgInput.placeholder = "💊 Medicine / 🌿 Remedies / 🧪 Tests / all…";
+      phaseBadge.textContent = "Your Choice";
+      msgInput.placeholder = "Type: medicine / remedies / tests / all ...";
     } else if (phase === "diagnosis") {
       phaseBadge.classList.add("phase-diagnosis");
-      phaseBadge.textContent = "📋 Assessment";
-      msgInput.placeholder = "Ask a follow-up question…";
+      phaseBadge.textContent = "Assessment";
+      msgInput.placeholder = "Ask a follow-up question...";
+    } else if (phase === "completed") {
+      phaseBadge.classList.add("phase-completed");
+      phaseBadge.textContent = "Completed";
+      msgInput.placeholder = "Session completed";
+      disableInput();
     }
   }
 
+  function disableInput() {
+    inputBar.classList.add("disabled");
+    msgInput.disabled = true;
+    sendBtn.disabled = true;
+  }
+
+  function enableInput() {
+    inputBar.classList.remove("disabled");
+    msgInput.disabled = false;
+    sendBtn.disabled = false;
+  }
+
   // ─── Start Session ─────────────────────────────────
-  async function startSession() {
+  async function startSession(temporary = false) {
     userName = nameInput.value.trim();
     if (!userName) { nameInput.focus(); return; }
 
     startBtn.disabled = true;
-    startBtn.textContent = "Starting…";
+    startBtn.textContent = "Starting...";
+    const tempBtn = document.getElementById("temp-btn");
+    if (tempBtn) tempBtn.disabled = true;
 
-    userId = userName.toLowerCase().replace(/\s+/g, "_") + "_" + Date.now();
+    isTemporary = temporary;
+    userId = getOrCreateUserId(userName);
+    storeUserName(userName);
+
+    try {
+      const res = await fetch(`${API}/start-session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId, name: userName, temporary: isTemporary }),
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      sessionId = data.session_id;
+
+      // Reset state for new session
+      conversationLog = [];
+      lastDiagnosedDisease = "";
+
+      // Switch to chat
+      welcomeEl.style.display = "none";
+      chatEl.style.display = "flex";
+      enableInput();
+
+      // Show temp badge in header if temporary
+      updateTempBadge();
+
+      updatePhase("greeting");
+
+      await sendInitialGreeting();
+      msgInput.focus();
+    } catch (err) {
+      console.error(err);
+      alert("Failed to start session: " + err.message);
+      startBtn.disabled = false;
+      startBtn.textContent = "Start Chat";
+      if (tempBtn) tempBtn.disabled = false;
+    }
+  }
+
+  function updateTempBadge() {
+    // Remove existing badge if any
+    const old = document.getElementById("temp-indicator");
+    if (old) old.remove();
+    if (isTemporary) {
+      const badge = document.createElement("span");
+      badge.id = "temp-indicator";
+      badge.className = "temp-badge";
+      badge.textContent = "TEMP";
+      phaseBadge.parentElement.appendChild(badge);
+    }
+  }
+
+  // ─── Start new session from chat (header button or post-PDF) ───
+  async function startNewSession() {
+    // If the old session was temporary, delete it from backend
+    if (isTemporary && sessionId) {
+      deleteTempSession(userId, sessionId);
+    }
+
+    // Clear chat area
+    messagesEl.innerHTML = "";
+    conversationLog = [];
+    lastDiagnosedDisease = "";
+    isTemporary = false;  // new session is always regular
+    enableInput();
+
+    updateTempBadge();
+    updatePhase("greeting");
 
     try {
       const res = await fetch(`${API}/start-session`, {
@@ -445,22 +678,24 @@
       const data = await res.json();
       sessionId = data.session_id;
 
-      // Switch to chat
-      welcomeEl.style.display = "none";
-      chatEl.style.display = "flex";
-
-      updatePhase("greeting");
-
-      // Send initial greeting to the backend so it generates a proper response
       await sendInitialGreeting();
-
       msgInput.focus();
     } catch (err) {
       console.error(err);
-      alert("Failed to start session: " + err.message);
-      startBtn.disabled = false;
-      startBtn.textContent = "Start Chat 💛";
+      addMessage("bot", "Failed to start new session: " + err.message);
     }
+  }
+
+  // ─── Delete temp session from backend (fire-and-forget) ──
+  function deleteTempSession(uid, sid) {
+    fetch(`${API}/api/sessions/${sid}?user_id=${encodeURIComponent(uid)}`, {
+      method: "DELETE",
+    }).then(res => {
+      if (res.ok) console.log("Temp session deleted:", sid);
+      else console.warn("Failed to delete temp session:", sid);
+    }).catch(err => {
+      console.warn("Error deleting temp session:", err);
+    });
   }
 
   // ─── Send initial "hi" to get the bot's greeting ───
@@ -483,7 +718,7 @@
     } catch (err) {
       console.error(err);
       showTyping(false);
-      addMessage("bot", `Hi ${userName}! 💙 I'm BluCare, your AI health companion. Could you share your age? It helps me give better guidance! 😊`);
+      addMessage("bot", `Hi ${userName}! I'm BluCare, your AI health companion. Could you share your age? It helps me give better guidance!`);
     }
   }
 
@@ -515,11 +750,11 @@
     } catch (err) {
       console.error(err);
       showTyping(false);
-      addMessage("bot", "⚠️ Connection error: " + err.message + "\nPlease try again.");
+      addMessage("bot", "Connection error: " + err.message + "\nPlease try again.");
     } finally {
       sending = false;
       sendBtn.disabled = false;
-      msgInput.focus();
+      if (currentPhase !== "completed") msgInput.focus();
     }
   }
 
@@ -546,7 +781,7 @@
           const data = JSON.parse(payload);
 
           if (data.error) {
-            addMessage("bot", "⚠️ Error: " + data.error);
+            addMessage("bot", "Error: " + data.error);
             break;
           }
 
@@ -565,13 +800,17 @@
             if (data.phase) {
               updatePhase(data.phase);
             }
+            // Track the completed bot message for PDF
+            if (botText) conversationLog.push({ role: "assistant", content: botText });
+
             // Capture top disease when assessment is ready
             if (data.candidates && data.candidates.length > 0) {
               lastDiagnosedDisease = data.candidates[0].disease || "";
             }
-            // Show hospital button after assessment phase
-            if (data.phase === "awaiting_choice" && lastDiagnosedDisease) {
-              showHospitalButton();
+
+            // After DETAIL phase completes -> show action buttons (PDF, Hospital, New Session)
+            if (data.phase === "completed") {
+              showCompletionActions();
             }
           }
         } catch (_) { /* skip non-JSON */ }
@@ -584,6 +823,48 @@
     }
   }
 
+  // ─── Show completion actions (PDF + Hospital + New Session) ──
+  function showCompletionActions() {
+    // Disclaimer
+    const disc = document.createElement("div");
+    disc.className = "disclaimer";
+    disc.textContent = "Disclaimer: This is an AI-assisted preliminary assessment only. It does not replace professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider.";
+    messagesEl.appendChild(disc);
+
+    // Action buttons row
+    const wrap = document.createElement("div");
+    wrap.className = "action-btns-wrap";
+    wrap.id = "completion-actions";
+
+    // PDF button
+    const pdfBtn = document.createElement("button");
+    pdfBtn.id = "pdf-btn";
+    pdfBtn.className = "action-btn pdf-download-btn";
+    pdfBtn.innerHTML = "Download Report (PDF)";
+    pdfBtn.onclick = downloadPDF;
+    wrap.appendChild(pdfBtn);
+
+    // Hospital button (if we have a disease)
+    if (lastDiagnosedDisease) {
+      const hospBtn = document.createElement("button");
+      hospBtn.id = "hospital-btn";
+      hospBtn.className = "action-btn hospital-action-btn";
+      hospBtn.innerHTML = "Find Nearby Hospitals";
+      hospBtn.onclick = findNearbyHospitals;
+      wrap.appendChild(hospBtn);
+    }
+
+    // New Session button
+    const newBtn = document.createElement("button");
+    newBtn.className = "action-btn new-session-btn";
+    newBtn.innerHTML = "+ New Session";
+    newBtn.onclick = startNewSession;
+    wrap.appendChild(newBtn);
+
+    messagesEl.appendChild(wrap);
+    scrollToBottom();
+  }
+
   // ─── Helpers ────────────────────────────────────────
   function addMessage(role, text) {
     const el = document.createElement("div");
@@ -591,6 +872,8 @@
     el.innerHTML = role === "bot" ? renderMarkdown(text) : escapeHtml(text);
     messagesEl.appendChild(el);
     scrollToBottom();
+    // Track for PDF (skip empty)
+    if (text && role === "user") conversationLog.push({ role: "user", content: text });
     return el;
   }
 
@@ -609,24 +892,9 @@
 
   // ─── Hospital feature ──────────────────────────────
 
-  function showHospitalButton() {
-    // Avoid duplicate buttons
-    if (document.getElementById("hospital-btn")) return;
-    const wrap = document.createElement("div");
-    wrap.className = "hospital-btn-wrap";
-    const btn = document.createElement("button");
-    btn.id = "hospital-btn";
-    btn.className = "find-hospitals-btn";
-    btn.innerHTML = "🏥 Find Nearby Hospitals / Clinics";
-    btn.onclick = findNearbyHospitals;
-    wrap.appendChild(btn);
-    messagesEl.appendChild(wrap);
-    scrollToBottom();
-  }
-
   async function findNearbyHospitals() {
     const btn = document.getElementById("hospital-btn");
-    if (btn) { btn.disabled = true; btn.innerHTML = "📍 Getting your location…"; }
+    if (btn) { btn.disabled = true; btn.innerHTML = "Getting your location..."; }
 
     let lat, lon;
     try {
@@ -636,19 +904,18 @@
       lat = pos.coords.latitude.toFixed(6);
       lon = pos.coords.longitude.toFixed(6);
     } catch (err) {
-      if (btn) { btn.disabled = false; btn.innerHTML = "🏥 Find Nearby Hospitals / Clinics"; }
-      renderHospitalError("📍 Location access denied or unavailable. Please allow location access and try again.");
+      if (btn) { btn.disabled = false; btn.innerHTML = "Find Nearby Hospitals"; }
+      renderHospitalError("Location access denied or unavailable. Please allow location access and try again.");
       return;
     }
 
-    if (btn) { btn.innerHTML = "⏳ Searching nearby hospitals…"; }
+    if (btn) { btn.innerHTML = "Searching nearby hospitals..."; }
 
-    // Sanitize disease name for URL
     const disease = lastDiagnosedDisease
       .toLowerCase()
       .replace(/[^a-z0-9 ]/g, "")
       .trim()
-      .split(" ")[0]; // first keyword only
+      .split(" ")[0];
 
     const url = `${HOSPITAL_API}?disease=${encodeURIComponent(disease)}&lat=${lat}&lon=${lon}`;
 
@@ -657,17 +924,15 @@
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
       const data = await res.json();
       renderHospitalCards(data.results || [], disease, lat, lon);
-      if (btn) btn.innerHTML = "🔄 Search Again";
+      if (btn) btn.innerHTML = "Search Again";
       if (btn) btn.disabled = false;
     } catch (err) {
-      if (btn) { btn.disabled = false; btn.innerHTML = "🏥 Find Nearby Hospitals / Clinics"; }
-      renderHospitalError("⚠️ Could not fetch hospital data: " + err.message +
-        "\nMake sure the hospital service is running at " + HOSPITAL_API);
+      if (btn) { btn.disabled = false; btn.innerHTML = "Find Nearby Hospitals"; }
+      renderHospitalError("Could not fetch hospital data: " + err.message);
     }
   }
 
   function renderHospitalCards(results, disease, lat, lon) {
-    // Remove any existing cards block
     const old = document.getElementById("hospital-cards");
     if (old) old.remove();
 
@@ -682,22 +947,20 @@
 
     const header = document.createElement("div");
     header.className = "cards-header";
-    header.textContent = `🏥 ${results.length} nearby hospital${results.length > 1 ? 's' : ''} for "${disease}" near you:`;
+    header.textContent = `${results.length} nearby hospital${results.length > 1 ? 's' : ''} for "${disease}" near you:`;
     wrap.appendChild(header);
 
     results.forEach(h => {
       const card = document.createElement("div");
       card.className = "hospital-card";
-
-      const stars = h.rating ? "⭐".repeat(Math.round(h.rating)) + ` ${h.rating}` : "";
-
+      const stars = h.rating ? "* ".repeat(Math.round(h.rating)) + ` ${h.rating}` : "";
       card.innerHTML = `
         <div class="h-name">${escapeHtml(h.name || "Unknown")}</div>
         <div class="h-meta">
           ${stars ? `<span class="h-rating">${stars}</span>` : ""}
-          ${h.phone ? `<span class="h-phone">📞 ${escapeHtml(h.phone)}</span>` : ""}
+          ${h.phone ? `<span class="h-phone">${escapeHtml(h.phone)}</span>` : ""}
         </div>
-        ${h.link ? `<a class="h-link" href="${escapeHtml(h.link)}" target="_blank" rel="noopener">📍 Open in Google Maps ↗</a>` : ""}
+        ${h.link ? `<a class="h-link" href="${escapeHtml(h.link)}" target="_blank" rel="noopener">Open in Google Maps</a>` : ""}
       `;
       wrap.appendChild(card);
     });
@@ -716,7 +979,87 @@
     scrollToBottom();
   }
 
-  // Enhanced markdown renderer with emoji + section support
+  // ─── PDF Report feature (uses session data from backend) ─────
+
+  async function downloadPDF() {
+    const btn = document.getElementById("pdf-btn");
+    if (!btn) return;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin"></span> Generating PDF...';
+
+    const payload = {
+      user_id: userId,
+      session_id: sessionId,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      const res = await fetch(`${API}/generate-pdf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || err.error || `HTTP ${res.status}`);
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `RagBluCare_Report_${new Date().toISOString().split("T")[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      btn.innerHTML = "PDF Downloaded!";
+
+      // Show redirect banner and start new session after a delay
+      showRedirectBanner();
+
+    } catch (err) {
+      console.error("PDF error:", err);
+      btn.innerHTML = "Failed -- Try Again";
+      setTimeout(() => { btn.disabled = false; btn.innerHTML = "Download Report (PDF)"; }, 3000);
+    }
+  }
+
+  function showRedirectBanner() {
+    // For temp sessions, delete now (before redirect)
+    const wasTempSession = isTemporary;
+    const oldSid = sessionId;
+
+    const banner = document.createElement("div");
+    banner.className = "session-complete-banner";
+    banner.innerHTML = wasTempSession
+      ? `<h3>Quick Consult Complete</h3>
+         <p>Your report has been downloaded. This temporary session will be removed. Starting a new session in <span id="countdown">5</span> seconds...</p>`
+      : `<h3>Consultation Complete</h3>
+         <p>Your report has been downloaded. Starting a new session in <span id="countdown">5</span> seconds...</p>`;
+    messagesEl.appendChild(banner);
+    scrollToBottom();
+
+    let seconds = 5;
+    const countdownEl = document.getElementById("countdown");
+    const interval = setInterval(() => {
+      seconds--;
+      if (countdownEl) countdownEl.textContent = seconds;
+      if (seconds <= 0) {
+        clearInterval(interval);
+        // Delete temp session before starting new one
+        if (wasTempSession && oldSid) {
+          deleteTempSession(userId, oldSid);
+        }
+        isTemporary = false;
+        startNewSession();
+      }
+    }, 1000);
+  }
+
+  // Enhanced markdown renderer
   function renderMarkdown(text) {
     let html = escapeHtml(text);
 
@@ -730,12 +1073,11 @@
     html = html.replace(/^## (.+)$/gm,  "<h2>$1</h2>");
     html = html.replace(/^# (.+)$/gm,   "<h1>$1</h1>");
 
-    // Horizontal rules (--- or ─── section breaks)
+    // Horizontal rules
     html = html.replace(/^-{3,}$/gm, "<hr>");
-    html = html.replace(/^─{3,}$/gm, "<hr>");
 
     // Bullet lists
-    html = html.replace(/^[•\-\*] (.+)$/gm, "<li>$1</li>");
+    html = html.replace(/^[*\-] (.+)$/gm, "<li>$1</li>");
     html = html.replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`);
 
     // Numbered lists
@@ -748,7 +1090,7 @@
     html = html.replace(/\n/g, "<br>");
 
     // Clean up double <br> after block elements
-    html = html.replace(/<\/h[123]><br>/g, "</h$1>");
+    html = html.replace(/<\/h[123]><br>/g, m => m.replace(/<br>/, ""));
     html = html.replace(/<hr><br>/g, "<hr>");
     html = html.replace(/<\/ul><br>/g, "</ul>");
 
