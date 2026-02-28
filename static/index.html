@@ -1,960 +1,1780 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BluCare — AI Health Companion</title>
+  <title>BluCare+</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    (function () {
+      const t = localStorage.getItem('blucare_theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
   <style>
-    /* ─── Reset + base ───────────────────────────────── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      /* Standard Dark Theme (Default) */
+      --bg-base: #0F0F12;
+      --bg-surface: #15151A;
+      --bg-card: #1B1B22;
+      --accent-sage: #7FE1C3;
+      --accent-lavender: #B6C4FF;
+      --accent-aqua: #A3E8ED;
+      --text-primary: #ECECF1;
+      --text-secondary: #B8BAC7;
+      --text-subdued: #8A8D9E;
+      --status-normal: #8FE3B0;
+      --status-risk: #F29B9B;
+      --shadow-base: 0 12px 40px rgba(0, 0, 0, 0.4);
+
+      /* Component Backgrounds & Borders */
+      --nav-bg: rgba(15, 15, 18, 0.8);
+      --ai-bubble-bg: rgba(127, 225, 195, 0.06);
+      --ai-bubble-border: rgba(127, 225, 195, 0.12);
+      --user-bubble-bg: rgba(182, 196, 255, 0.06);
+      --user-bubble-border: rgba(182, 196, 255, 0.12);
+      --input-bg: #18181F;
+      --border-light: rgba(255, 255, 255, 0.05);
+      --btn-hover-bg: rgba(255, 255, 255, 0.1);
+      --tag-bg: rgba(182, 196, 255, 0.1);
+      --badge-bg: rgba(143, 227, 176, 0.1);
+
+      /* Glows & Hover States */
+      --glow-sage: rgba(127, 225, 195, 0.4);
+      --glow-lavender: rgba(182, 196, 255, 0.4);
+      --glow-normal: rgba(143, 227, 176, 0.5);
+      --hover-lavender: rgba(182, 196, 255, 0.1);
+    }
+
+    [data-theme="light"] {
+      /* Crisp Light Theme */
+      --bg-base: #F8FAFC;
+      --bg-surface: #F1F5F9;
+      --bg-card: #FFFFFF;
+      --accent-sage: #14B8A6;
+      --accent-lavender: #6366F1;
+      --accent-aqua: #06B6D4;
+      --text-primary: #0F172A;
+      --text-secondary: #334155;
+      --text-subdued: #64748B;
+      --status-normal: #10B981;
+      --status-risk: #EF4444;
+      --shadow-base: 0 12px 40px rgba(0, 0, 0, 0.05);
+
+      /* Component Backgrounds & Borders */
+      --nav-bg: rgba(248, 250, 252, 0.85);
+      --ai-bubble-bg: rgba(20, 184, 166, 0.08);
+      --ai-bubble-border: rgba(20, 184, 166, 0.2);
+      --user-bubble-bg: rgba(99, 102, 241, 0.08);
+      --user-bubble-border: rgba(99, 102, 241, 0.2);
+      --input-bg: #FFFFFF;
+      --border-light: rgba(15, 23, 42, 0.08);
+      --btn-hover-bg: rgba(15, 23, 42, 0.05);
+      --tag-bg: rgba(99, 102, 241, 0.1);
+      --badge-bg: rgba(16, 185, 129, 0.1);
+
+      /* Glows & Hover States */
+      --glow-sage: rgba(20, 184, 166, 0.4);
+      --glow-lavender: rgba(99, 102, 241, 0.4);
+      --glow-normal: rgba(16, 185, 129, 0.4);
+      --hover-lavender: rgba(99, 102, 241, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
       height: 100vh;
+      display: flex;
+      justify-content: center;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* --- Navigation --- */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 80px;
+      padding: 0 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 100;
+      background: var(--nav-bg);
+      backdrop-filter: blur(10px);
+      transition: background-color 0.3s ease;
+    }
+
+    .brand {
+      font-weight: 500;
+      font-size: 1.1rem;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Responsive Status Dot */
+    .brand-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--accent-sage);
+      border-radius: 50%;
+      box-shadow: 0 0 15px var(--glow-sage);
+      transition: background-color 0.4s ease, box-shadow 0.4s ease;
+    }
+
+    .brand-dot.typing {
+      background: var(--accent-lavender);
+      box-shadow: 0 0 15px var(--glow-lavender);
+    }
+
+    .brand-dot.generating {
+      background: var(--status-normal);
+      box-shadow: 0 0 15px var(--glow-normal);
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 40px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .nav-links a {
+      color: var(--text-subdued);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.3s ease;
+      cursor: pointer;
+    }
+
+    .nav-links a:hover {
+      color: var(--accent-lavender);
+    }
+
+    .theme-toggle {
+      background: transparent;
+      border: none;
+      color: var(--text-subdued);
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: color 0.3s ease;
+      margin-left: 12px;
     }
 
-    /* ─── Welcome Screen ─────────────────────────────── */
-    #welcome-screen {
-      text-align: center;
-      animation: fadeIn 0.6s ease;
-      max-width: 420px;
-      padding: 2rem;
+    .theme-toggle:hover {
+      color: var(--accent-lavender);
     }
-    #welcome-screen h1 {
-      font-size: 2.4rem;
-      background: linear-gradient(135deg, #38bdf8, #818cf8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 0.5rem;
+
+    .theme-toggle svg {
+      width: 18px;
+      height: 18px;
     }
-    #welcome-screen p {
-      color: #94a3b8;
-      margin-bottom: 1.6rem;
-      font-size: 1.05rem;
-    }
-    .input-group {
+
+    /* --- Logged-in User Display --- */
+    .user-profile {
       display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
+      align-items: center;
+      gap: 12px;
+      padding-left: 24px;
+      border-left: 1px solid var(--border-light);
     }
-    .input-group input {
-      padding: 0.85rem 1.1rem;
-      border-radius: 14px;
-      border: 1px solid #334155;
-      background: #1e293b;
-      color: #e2e8f0;
-      font-size: 0.95rem;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .input-group input:focus { border-color: #38bdf8; }
-    .input-group input::placeholder { color: #64748b; }
 
-    #start-btn {
-      padding: 0.85rem;
-      border-radius: 14px;
-      border: none;
-      background: linear-gradient(135deg, #38bdf8, #818cf8);
-      color: #fff;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--ai-bubble-bg);
+      color: var(--accent-sage);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 500;
+      border: 1px solid var(--ai-bubble-border);
+      flex-shrink: 0;
     }
-    #start-btn:hover { opacity: 0.9; }
-    #start-btn:active { transform: scale(0.97); }
-    #start-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* ─── Chat Screen ────────────────────────────────── */
-    #chat-screen {
-      display: none;
-      flex-direction: column;
+    .user-name {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      font-weight: 400;
+      white-space: nowrap;
+    }
+
+    /* --- Conversation Container --- */
+    .container {
       width: 100%;
-      max-width: 750px;
+      max-width: 900px;
       height: 100vh;
-      padding: 1rem;
-    }
-    .chat-header {
       display: flex;
-      align-items: center;
-      gap: 0.8rem;
-      padding-bottom: 0.75rem;
-      border-bottom: 1px solid #1e293b;
+      flex-direction: column;
+      padding-top: 100px;
+      padding-bottom: 40px;
+      position: relative;
     }
-    .chat-header .avatar {
-      width: 44px; height: 44px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #38bdf8, #818cf8);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.3rem;
-    }
-    .chat-header .info h2 {
-      font-size: 1.1rem;
-      background: linear-gradient(135deg, #38bdf8, #818cf8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .chat-header .info span { font-size: 0.78rem; color: #4ade80; }
-    .header-actions {
-      margin-left: auto;
-      display: flex;
-      gap: 0.5rem;
-    }
-    .header-btn {
-      padding: 0.4rem 0.75rem;
-      border-radius: 10px;
-      border: 1px solid #334155;
-      background: #1e293b;
-      color: #94a3b8;
-      font-size: 0.78rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      gap: 0.3rem;
-    }
-    .header-btn:hover { border-color: #38bdf8; color: #e2e8f0; }
 
-    /* Messages */
-    #messages {
-      flex: 1;
+    .chat-area {
+      flex-grow: 1;
       overflow-y: auto;
-      padding: 0.5rem 0;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-      scrollbar-width: thin;
-      scrollbar-color: #334155 transparent;
+      padding: 20px;
+      mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+      -webkit-mask-image: linear-gradient(to bottom, transparent, black 10%, black 90%, transparent);
+      scrollbar-width: none;
     }
 
-    .msg {
-      max-width: 88%;
-      padding: 0.85rem 1.1rem;
-      border-radius: 16px;
-      line-height: 1.6;
-      font-size: 0.95rem;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-    }
-    .msg.bot {
-      align-self: flex-start;
-      background: #1e293b;
-      border-bottom-left-radius: 4px;
-      color: #cbd5e1;
-    }
-    .msg.user {
-      align-self: flex-end;
-      background: linear-gradient(135deg, #38bdf8, #818cf8);
-      color: #fff;
-      border-bottom-right-radius: 4px;
-    }
-    .msg.bot strong { color: #38bdf8; }
-    .msg.bot h1, .msg.bot h2, .msg.bot h3 {
-      color: #38bdf8;
-      margin: 0.6rem 0 0.3rem;
-      font-size: 1.05rem;
-    }
-    .msg.bot h1 { font-size: 1.15rem; }
-
-    /* Structured sections in diagnosis */
-    .msg.bot hr {
-      border: none;
-      border-top: 1px solid #334155;
-      margin: 0.8rem 0;
-    }
-    .msg.bot ul, .msg.bot ol { padding-left: 1.3rem; margin: 0.3rem 0; }
-    .msg.bot li { margin: 0.15rem 0; }
-    .msg.bot code {
-      background: #0f172a;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 0.88em;
-    }
-
-    /* Confidence badges */
-    .confidence-badge {
-      display: inline-block;
-      background: linear-gradient(135deg, #38bdf8, #818cf8);
-      color: white;
-      padding: 2px 8px;
-      border-radius: 10px;
-      font-size: 0.82em;
-      font-weight: 600;
-    }
-
-    .typing-indicator {
-      align-self: flex-start;
-      padding: 0.7rem 1.1rem;
-      background: #1e293b;
-      border-radius: 16px;
+    .chat-area::-webkit-scrollbar {
       display: none;
-      gap: 5px;
-    }
-    .typing-indicator span {
-      width: 8px; height: 8px;
-      background: #64748b;
-      border-radius: 50%;
-      display: inline-block;
-      animation: bounce 1.4s infinite;
-    }
-    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-
-    /* Input bar */
-    .input-bar {
-      display: flex;
-      gap: 0.6rem;
-      padding-top: 0.75rem;
-      border-top: 1px solid #1e293b;
-    }
-    #msg-input {
-      flex: 1;
-      padding: 0.8rem 1.1rem;
-      border-radius: 14px;
-      border: 1px solid #334155;
-      background: #1e293b;
-      color: #e2e8f0;
-      font-size: 0.95rem;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    #msg-input:focus { border-color: #38bdf8; }
-    #msg-input::placeholder { color: #64748b; }
-
-    #send-btn {
-      width: 46px; height: 46px;
-      border-radius: 14px;
-      border: none;
-      background: linear-gradient(135deg, #38bdf8, #818cf8);
-      color: #fff;
-      font-size: 1.2rem;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: opacity 0.2s, transform 0.1s;
-    }
-    #send-btn:hover { opacity: 0.9; }
-    #send-btn:active { transform: scale(0.95); }
-    #send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    /* Phase indicator */
-    .phase-badge {
-      display: inline-block;
-      font-size: 0.72rem;
-      padding: 2px 8px;
-      border-radius: 8px;
-      margin-left: 8px;
-      font-weight: 500;
-    }
-    .phase-greeting { background: #065f46; color: #6ee7b7; }
-    .phase-gathering { background: #713f12; color: #fbbf24; }
-    .phase-diagnosis { background: #7c2d12; color: #fb923c; }
-    .phase-choice { background: #4c1d95; color: #c4b5fd; }
-    .phase-completed { background: #14532d; color: #86efac; }
-
-    /* Animations */
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes bounce {
-      0%, 60%, 100% { transform: translateY(0); }
-      30% { transform: translateY(-6px); }
     }
 
-    /* Scrollbar */
-    #messages::-webkit-scrollbar { width: 6px; }
-    #messages::-webkit-scrollbar-track { background: transparent; }
-    #messages::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-
-    /* ─── Hospital feature ─────────────────────────── */
-    .hospital-btn-wrap {
-      align-self: flex-start;
-      margin-top: 0.3rem;
-    }
-    .find-hospitals-btn {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.6rem 1.1rem;
-      border-radius: 12px;
-      border: none;
-      background: linear-gradient(135deg, #10b981, #059669);
-      color: #fff;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
-      animation: fadeIn 0.4s ease;
-    }
-    .find-hospitals-btn:hover { opacity: 0.88; }
-    .find-hospitals-btn:active { transform: scale(0.96); }
-    .find-hospitals-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-
-    .hospital-cards {
-      align-self: flex-start;
-      width: 100%;
-      max-width: 88%;
+    /* --- Message Styles & Layout Refinements --- */
+    .message {
+      margin-bottom: 32px;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: softFadeIn 0.4s ease forwards;
       display: flex;
       flex-direction: column;
-      gap: 0.55rem;
-      animation: fadeIn 0.4s ease;
-    }
-    .hospital-cards .cards-header {
-      font-size: 0.85rem;
-      color: #4ade80;
-      font-weight: 600;
-      padding: 0 0.2rem;
-    }
-    .hospital-card {
-      background: #1e293b;
-      border: 1px solid #1e4035;
-      border-radius: 14px;
-      padding: 0.8rem 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.3rem;
-    }
-    .hospital-card .h-name {
-      font-weight: 700;
-      color: #e2e8f0;
-      font-size: 0.95rem;
-    }
-    .hospital-card .h-meta {
-      display: flex;
-      gap: 1rem;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    .hospital-card .h-rating {
-      color: #fbbf24;
-      font-size: 0.85rem;
-      font-weight: 600;
-    }
-    .hospital-card .h-phone {
-      color: #94a3b8;
-      font-size: 0.83rem;
-    }
-    .hospital-card .h-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.3rem;
-      font-size: 0.82rem;
-      color: #38bdf8;
-      text-decoration: none;
-      margin-top: 0.2rem;
-      width: fit-content;
-    }
-    .hospital-card .h-link:hover { text-decoration: underline; }
-    .hospital-error {
-      align-self: flex-start;
-      background: #1e293b;
-      border: 1px solid #7f1d1d;
-      border-radius: 14px;
-      padding: 0.7rem 1rem;
-      color: #fca5a5;
-      font-size: 0.88rem;
-      max-width: 88%;
-      animation: fadeIn 0.3s ease;
     }
 
-    /* ─── Action buttons (PDF, New Session, Hospital) ──── */
-    .action-btns-wrap {
-      align-self: flex-start;
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      margin-top: 0.4rem;
-      animation: fadeIn 0.4s ease;
-    }
-    .action-btn {
-      display: flex;
-      align-items: center;
-      gap: 0.45rem;
-      padding: 0.6rem 1.1rem;
-      border-radius: 12px;
-      border: none;
-      color: #fff;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
-    }
-    .action-btn:hover { opacity: 0.88; }
-    .action-btn:active { transform: scale(0.96); }
-    .action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-
-    .pdf-download-btn { background: linear-gradient(135deg, #ef4444, #b91c1c); }
-    .new-session-btn { background: linear-gradient(135deg, #38bdf8, #818cf8); }
-    .hospital-action-btn { background: linear-gradient(135deg, #10b981, #059669); }
-    .temp-session-btn { background: linear-gradient(135deg, #f59e0b, #d97706); }
-    .temp-badge {
-      display: inline-block;
-      font-size: 0.68rem;
-      padding: 2px 7px;
-      border-radius: 6px;
-      background: #78350f;
-      color: #fbbf24;
-      margin-left: 6px;
-      font-weight: 500;
-    }
-
-    .action-btn .spin {
-      display: inline-block;
-      width: 14px; height: 14px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ─── Disclaimer banner ────────────────────────── */
-    .disclaimer {
-      align-self: center;
-      background: #1c1917;
-      border: 1px solid #44403c;
-      border-radius: 10px;
-      padding: 0.6rem 1rem;
-      font-size: 0.75rem;
-      color: #a8a29e;
-      text-align: center;
-      margin: 0.5rem 0;
-      max-width: 88%;
-    }
-
-    /* ─── Session completed overlay ────────────────── */
-    .session-complete-banner {
-      align-self: center;
-      background: linear-gradient(135deg, #065f46, #14532d);
-      border: 1px solid #16a34a;
-      border-radius: 14px;
-      padding: 1rem 1.5rem;
-      text-align: center;
-      animation: fadeIn 0.5s ease;
-      margin: 0.5rem 0;
-    }
-    .session-complete-banner h3 {
-      color: #86efac;
-      margin-bottom: 0.4rem;
-      font-size: 1rem;
-    }
-    .session-complete-banner p {
-      color: #bbf7d0;
-      font-size: 0.85rem;
-    }
-
-    /* Input disabled state */
-    .input-bar.disabled {
-      opacity: 0.5;
-      pointer-events: none;
-    }
-  </style>
-</head>
-<body>
-
-  <!-- Welcome Screen -->
-  <div id="welcome-screen">
-    <h1>BluCare</h1>
-    <p>Your AI Health Companion — Smart, Caring, Always Here</p>
-    <div class="input-group">
-      <input id="name-input" type="text" placeholder="Your name..." autocomplete="off" />
-      <button id="start-btn" onclick="startSession(false)">Start Chat</button>
-      <button id="temp-btn" class="action-btn temp-session-btn" style="padding:0.85rem; border-radius:14px; font-size:1rem; justify-content:center;" onclick="startSession(true)">Quick Consult (Temp)</button>
-    </div>
-    <p style="font-size:0.75rem; color:#64748b; margin-top:0.8rem;">Quick Consult: session is not saved after you finish.</p>
-  </div>
-
-  <!-- Chat Screen -->
-  <div id="chat-screen">
-    <div class="chat-header">
-      <div class="avatar">+</div>
-      <div class="info">
-        <h2>BluCare Assistant</h2>
-        <span>Online</span>
-        <span class="phase-badge phase-greeting" id="phase-badge">Greeting</span>
-      </div>
-      <div class="header-actions">
-        <a class="header-btn" href="/my-sessions" id="sessions-link">Sessions</a>
-        <button class="header-btn" id="new-session-header-btn" onclick="startNewSession()">+ New</button>
-        <a class="header-btn" href="/nearby-ambulance" style="background:#dc2626;color:#fff;border-color:#dc2626;">🚑 Ambulance</a>
-      </div>
-    </div>
-
-    <div id="messages"></div>
-
-    <div class="typing-indicator" id="typing">
-      <span></span><span></span><span></span>
-    </div>
-
-    <div class="input-bar" id="input-bar">
-      <input id="msg-input" type="text" placeholder="Type your message..." autocomplete="off" />
-      <button id="send-btn" onclick="sendMessage()">&#10148;</button>
-    </div>
-  </div>
-
-<script>
-  // ─── State ──────────────────────────────────────────
-  let userId    = "";
-  let sessionId = "";
-  let userName  = "";
-  let currentPhase = "greeting";
-  let sending   = false;
-  let lastDiagnosedDisease = "";
-  let conversationLog = [];
-  let isTemporary = false;  // temp session flag
-
-  const API = window.location.origin;
-  const HOSPITAL_API = `${window.location.origin}/proxy/hospitals`;
-
-  // ─── Persistent userId via localStorage ─────────────
-  function getOrCreateUserId(name) {
-    const key = "blucare_user_id";
-    let stored = localStorage.getItem(key);
-    if (stored) return stored;
-    const id = name.toLowerCase().replace(/\s+/g, "_") + "_" + Date.now();
-    localStorage.setItem(key, id);
-    return id;
-  }
-
-  function getStoredUserName() {
-    return localStorage.getItem("blucare_user_name") || "";
-  }
-
-  function storeUserName(name) {
-    localStorage.setItem("blucare_user_name", name);
-  }
-
-  // ─── Refs ───────────────────────────────────────────
-  const welcomeEl  = document.getElementById("welcome-screen");
-  const chatEl     = document.getElementById("chat-screen");
-  const messagesEl = document.getElementById("messages");
-  const typingEl   = document.getElementById("typing");
-  const msgInput   = document.getElementById("msg-input");
-  const nameInput  = document.getElementById("name-input");
-  const startBtn   = document.getElementById("start-btn");
-  const sendBtn    = document.getElementById("send-btn");
-  const phaseBadge = document.getElementById("phase-badge");
-  const inputBar   = document.getElementById("input-bar");
-
-  // ─── Enter-key ──────────────────────────────────────
-  nameInput.addEventListener("keydown", e => { if (e.key === "Enter") startSession(false); });
-  msgInput.addEventListener("keydown",  e => { if (e.key === "Enter" && !e.shiftKey) sendMessage(); });
-
-  // Pre-fill name if returning user
-  const savedName = getStoredUserName();
-  if (savedName) nameInput.value = savedName;
-
-  // ─── Update phase badge ─────────────────────────────
-  function updatePhase(phase) {
-    currentPhase = phase;
-    phaseBadge.className = "phase-badge";
-    if (phase === "greeting") {
-      phaseBadge.classList.add("phase-greeting");
-      phaseBadge.textContent = "Greeting";
-      msgInput.placeholder = "Tell me about yourself...";
-    } else if (phase === "gathering") {
-      phaseBadge.classList.add("phase-gathering");
-      phaseBadge.textContent = "Gathering";
-      msgInput.placeholder = "Describe your symptoms...";
-    } else if (phase === "awaiting_choice") {
-      phaseBadge.classList.add("phase-choice");
-      phaseBadge.textContent = "Your Choice";
-      msgInput.placeholder = "Type: medicine / remedies / tests / all ...";
-    } else if (phase === "diagnosis") {
-      phaseBadge.classList.add("phase-diagnosis");
-      phaseBadge.textContent = "Assessment";
-      msgInput.placeholder = "Ask a follow-up question...";
-    } else if (phase === "completed") {
-      phaseBadge.classList.add("phase-completed");
-      phaseBadge.textContent = "Completed";
-      msgInput.placeholder = "Session completed";
-      disableInput();
-    }
-  }
-
-  function disableInput() {
-    inputBar.classList.add("disabled");
-    msgInput.disabled = true;
-    sendBtn.disabled = true;
-  }
-
-  function enableInput() {
-    inputBar.classList.remove("disabled");
-    msgInput.disabled = false;
-    sendBtn.disabled = false;
-  }
-
-  // ─── Start Session ─────────────────────────────────
-  async function startSession(temporary = false) {
-    userName = nameInput.value.trim();
-    if (!userName) { nameInput.focus(); return; }
-
-    startBtn.disabled = true;
-    startBtn.textContent = "Starting...";
-    const tempBtn = document.getElementById("temp-btn");
-    if (tempBtn) tempBtn.disabled = true;
-
-    isTemporary = temporary;
-    userId = getOrCreateUserId(userName);
-    storeUserName(userName);
-
-    try {
-      const res = await fetch(`${API}/start-session`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId, name: userName, temporary: isTemporary }),
-      });
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      sessionId = data.session_id;
-
-      // Reset state for new session
-      conversationLog = [];
-      lastDiagnosedDisease = "";
-
-      // Switch to chat
-      welcomeEl.style.display = "none";
-      chatEl.style.display = "flex";
-      enableInput();
-
-      // Show temp badge in header if temporary
-      updateTempBadge();
-
-      updatePhase("greeting");
-
-      await sendInitialGreeting();
-      msgInput.focus();
-    } catch (err) {
-      console.error(err);
-      alert("Failed to start session: " + err.message);
-      startBtn.disabled = false;
-      startBtn.textContent = "Start Chat";
-      if (tempBtn) tempBtn.disabled = false;
-    }
-  }
-
-  function updateTempBadge() {
-    // Remove existing badge if any
-    const old = document.getElementById("temp-indicator");
-    if (old) old.remove();
-    if (isTemporary) {
-      const badge = document.createElement("span");
-      badge.id = "temp-indicator";
-      badge.className = "temp-badge";
-      badge.textContent = "TEMP";
-      phaseBadge.parentElement.appendChild(badge);
-    }
-  }
-
-  // ─── Start new session from chat (header button or post-PDF) ───
-  async function startNewSession() {
-    // If the old session was temporary, delete it from backend
-    if (isTemporary && sessionId) {
-      deleteTempSession(userId, sessionId);
-    }
-
-    // Clear chat area
-    messagesEl.innerHTML = "";
-    conversationLog = [];
-    lastDiagnosedDisease = "";
-    isTemporary = false;  // new session is always regular
-    enableInput();
-
-    updateTempBadge();
-    updatePhase("greeting");
-
-    try {
-      const res = await fetch(`${API}/start-session`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId, name: userName }),
-      });
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      sessionId = data.session_id;
-
-      await sendInitialGreeting();
-      msgInput.focus();
-    } catch (err) {
-      console.error(err);
-      addMessage("bot", "Failed to start new session: " + err.message);
-    }
-  }
-
-  // ─── Delete temp session from backend (fire-and-forget) ──
-  function deleteTempSession(uid, sid) {
-    fetch(`${API}/api/sessions/${sid}?user_id=${encodeURIComponent(uid)}`, {
-      method: "DELETE",
-    }).then(res => {
-      if (res.ok) console.log("Temp session deleted:", sid);
-      else console.warn("Failed to delete temp session:", sid);
-    }).catch(err => {
-      console.warn("Error deleting temp session:", err);
-    });
-  }
-
-  // ─── Send initial "hi" to get the bot's greeting ───
-  async function sendInitialGreeting() {
-    showTyping(true);
-
-    try {
-      const res = await fetch(`${API}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: userId,
-          session_id: sessionId,
-          message: `Hi, my name is ${userName}`,
-        }),
-      });
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      await processStream(res);
-    } catch (err) {
-      console.error(err);
-      showTyping(false);
-      addMessage("bot", `Hi ${userName}! I'm BluCare, your AI health companion. Could you share your age? It helps me give better guidance!`);
-    }
-  }
-
-  // ─── Send Message ──────────────────────────────────
-  async function sendMessage() {
-    const text = msgInput.value.trim();
-    if (!text || sending) return;
-
-    sending = true;
-    sendBtn.disabled = true;
-    msgInput.value = "";
-
-    addMessage("user", text);
-    showTyping(true);
-
-    try {
-      const res = await fetch(`${API}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: userId,
-          session_id: sessionId,
-          message: text,
-        }),
-      });
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      await processStream(res);
-    } catch (err) {
-      console.error(err);
-      showTyping(false);
-      addMessage("bot", "Connection error: " + err.message + "\nPlease try again.");
-    } finally {
-      sending = false;
-      sendBtn.disabled = false;
-      if (currentPhase !== "completed") msgInput.focus();
-    }
-  }
-
-  // ─── Process SSE Stream ────────────────────────────
-  async function processStream(res) {
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let botText = "";
-    let botEl = null;
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split("\n");
-
-      for (const line of lines) {
-        if (!line.startsWith("data: ")) continue;
-        const payload = line.slice(6).trim();
-        if (!payload) continue;
-
-        try {
-          const data = JSON.parse(payload);
-
-          if (data.error) {
-            addMessage("bot", "Error: " + data.error);
-            break;
-          }
-
-          if (data.token) {
-            if (!botEl) {
-              showTyping(false);
-              botEl = addMessage("bot", "");
-            }
-            botText += data.token;
-            botEl.innerHTML = renderMarkdown(botText);
-            scrollToBottom();
-          }
-
-          if (data.done) {
-            showTyping(false);
-            if (data.phase) {
-              updatePhase(data.phase);
-            }
-            // Track the completed bot message for PDF
-            if (botText) conversationLog.push({ role: "assistant", content: botText });
-
-            // Capture top disease when assessment is ready
-            if (data.candidates && data.candidates.length > 0) {
-              lastDiagnosedDisease = data.candidates[0].disease || "";
-            }
-
-            // After DETAIL phase completes -> show action buttons (PDF, Hospital, New Session)
-            if (data.phase === "completed") {
-              showCompletionActions();
-            }
-          }
-        } catch (_) { /* skip non-JSON */ }
+    @keyframes softFadeIn {
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
     }
 
-    if (!botEl) {
-      showTyping(false);
-      addMessage("bot", "I didn't get a response. Please try again.");
-    }
-  }
-
-  // ─── Show completion actions (PDF + Hospital + New Session) ──
-  function showCompletionActions() {
-    // Disclaimer
-    const disc = document.createElement("div");
-    disc.className = "disclaimer";
-    disc.textContent = "Disclaimer: This is an AI-assisted preliminary assessment only. It does not replace professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider.";
-    messagesEl.appendChild(disc);
-
-    // Action buttons row
-    const wrap = document.createElement("div");
-    wrap.className = "action-btns-wrap";
-    wrap.id = "completion-actions";
-
-    // PDF button
-    const pdfBtn = document.createElement("button");
-    pdfBtn.id = "pdf-btn";
-    pdfBtn.className = "action-btn pdf-download-btn";
-    pdfBtn.innerHTML = "Download Report (PDF)";
-    pdfBtn.onclick = downloadPDF;
-    wrap.appendChild(pdfBtn);
-
-    // Hospital button (if we have a disease)
-    if (lastDiagnosedDisease) {
-      const hospBtn = document.createElement("button");
-      hospBtn.id = "hospital-btn";
-      hospBtn.className = "action-btn hospital-action-btn";
-      hospBtn.innerHTML = "Find Nearby Hospitals";
-      hospBtn.onclick = findNearbyHospitals;
-      wrap.appendChild(hospBtn);
+    .speaker-label {
+      font-size: 0.75rem;
+      color: var(--text-subdued);
+      margin-bottom: 8px;
+      padding: 0 4px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
     }
 
-    // New Session button
-    const newBtn = document.createElement("button");
-    newBtn.className = "action-btn new-session-btn";
-    newBtn.innerHTML = "+ New Session";
-    newBtn.onclick = startNewSession;
-    wrap.appendChild(newBtn);
-
-    messagesEl.appendChild(wrap);
-    scrollToBottom();
-  }
-
-  // ─── Helpers ────────────────────────────────────────
-  function addMessage(role, text) {
-    const el = document.createElement("div");
-    el.className = `msg ${role}`;
-    el.innerHTML = role === "bot" ? renderMarkdown(text) : escapeHtml(text);
-    messagesEl.appendChild(el);
-    scrollToBottom();
-    // Track for PDF (skip empty)
-    if (text && role === "user") conversationLog.push({ role: "user", content: text });
-    return el;
-  }
-
-  function showTyping(show) {
-    typingEl.style.display = show ? "flex" : "none";
-    if (show) scrollToBottom();
-  }
-
-  function scrollToBottom() {
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
-
-  function escapeHtml(t) {
-    return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  }
-
-  // ─── Hospital feature ──────────────────────────────
-
-  async function findNearbyHospitals() {
-    const btn = document.getElementById("hospital-btn");
-    if (btn) { btn.disabled = true; btn.innerHTML = "Getting your location..."; }
-
-    let lat, lon;
-    try {
-      const pos = await new Promise((resolve, reject) =>
-        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
-      );
-      lat = pos.coords.latitude.toFixed(6);
-      lon = pos.coords.longitude.toFixed(6);
-    } catch (err) {
-      if (btn) { btn.disabled = false; btn.innerHTML = "Find Nearby Hospitals"; }
-      renderHospitalError("Location access denied or unavailable. Please allow location access and try again.");
-      return;
+    /* Yukti (AI) Messages - Left Aligned */
+    .ai-message {
+      align-items: flex-start;
     }
 
-    if (btn) { btn.innerHTML = "Searching nearby hospitals..."; }
-
-    const disease = lastDiagnosedDisease
-      .toLowerCase()
-      .replace(/[^a-z0-9 ]/g, "")
-      .trim()
-      .split(" ")[0];
-
-    const url = `${HOSPITAL_API}?disease=${encodeURIComponent(disease)}&lat=${lat}&lon=${lon}`;
-
-    try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
-      if (!res.ok) throw new Error(`Server returned ${res.status}`);
-      const data = await res.json();
-      renderHospitalCards(data.results || [], disease, lat, lon);
-      if (btn) btn.innerHTML = "Search Again";
-      if (btn) btn.disabled = false;
-    } catch (err) {
-      if (btn) { btn.disabled = false; btn.innerHTML = "Find Nearby Hospitals"; }
-      renderHospitalError("Could not fetch hospital data: " + err.message);
-    }
-  }
-
-  function renderHospitalCards(results, disease, lat, lon) {
-    const old = document.getElementById("hospital-cards");
-    if (old) old.remove();
-
-    if (!results || results.length === 0) {
-      renderHospitalError("No nearby hospitals found for \"" + disease + "\" at your location.");
-      return;
+    .ai-bubble {
+      background-color: var(--ai-bubble-bg);
+      padding: 24px;
+      border-radius: 24px;
+      line-height: 1.7;
+      font-size: 1rem;
+      color: var(--text-primary);
+      box-shadow: var(--shadow-base);
+      max-width: 70%;
+      border: 1px solid var(--ai-bubble-border);
+      transition: background-color 0.3s, border-color 0.3s;
     }
 
-    const wrap = document.createElement("div");
-    wrap.id = "hospital-cards";
-    wrap.className = "hospital-cards";
+    /* User Messages - Right Aligned */
+    .user-message {
+      align-items: flex-end;
+    }
 
-    const header = document.createElement("div");
-    header.className = "cards-header";
-    header.textContent = `${results.length} nearby hospital${results.length > 1 ? 's' : ''} for "${disease}" near you:`;
-    wrap.appendChild(header);
+    .user-bubble {
+      background-color: var(--user-bubble-bg);
+      padding: 24px;
+      border-radius: 24px;
+      line-height: 1.7;
+      font-size: 1rem;
+      color: var(--text-primary);
+      box-shadow: var(--shadow-base);
+      max-width: 70%;
+      border: 1px solid var(--user-bubble-border);
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: background-color 0.3s, border-color 0.3s;
+    }
 
-    results.forEach(h => {
-      const card = document.createElement("div");
-      card.className = "hospital-card";
-      const stars = h.rating ? "* ".repeat(Math.round(h.rating)) + ` ${h.rating}` : "";
-      card.innerHTML = `
+    /* Clamped Text Logic */
+    .clamped-text {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      word-break: break-word;
+      transition: all 0.3s ease;
+    }
+
+    .clamped-text.expanded {
+      -webkit-line-clamp: unset;
+    }
+
+    .expand-toggle {
+      background: transparent;
+      border: none;
+      color: var(--text-subdued);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-top: 4px;
+      transition: color 0.2s ease;
+    }
+
+    .expand-toggle:hover {
+      color: var(--accent-lavender);
+    }
+
+    .expand-toggle svg {
+      transition: transform 0.3s ease;
+    }
+
+    .expand-toggle.expanded svg {
+      transform: rotate(180deg);
+    }
+
+    .voice-tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 28px;
+      border-radius: 14px;
+      padding: 0 12px;
+      gap: 6px;
+      font-size: 0.8rem;
+      background: var(--tag-bg);
+      color: var(--accent-lavender);
+      width: fit-content;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: var(--status-normal);
+      margin-bottom: 12px;
+      background: var(--badge-bg);
+      padding: 4px 12px;
+      border-radius: 12px;
+    }
+
+    /* --- Input Section & Layered Glow --- */
+    .input-section {
+      position: relative;
+      padding: 0 20px;
+    }
+
+    .input-glow {
+      position: relative;
+      margin: 0 20px;
+      border-radius: 32px;
+      z-index: 1;
+    }
+
+    .input-glow::before {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      border-radius: 34px;
+      background: linear-gradient(90deg, var(--accent-sage), var(--accent-lavender), var(--accent-aqua), var(--accent-sage));
+      background-size: 300% 100%;
+      filter: blur(14px);
+      opacity: 0.15;
+      z-index: -1;
+      transition: opacity 0.4s ease, filter 0.4s ease;
+      animation: flowGradient 6s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes flowGradient {
+      0% {
+        background-position: 0% 50%;
+      }
+
+      100% {
+        background-position: 150% 50%;
+      }
+    }
+
+    .input-glow:focus-within::before,
+    .input-glow.active-listening::before {
+      opacity: 0.45;
+      filter: blur(18px);
+    }
+
+    .input-wrapper {
+      background-color: var(--input-bg);
+      border-radius: 32px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: flex-end;
+      /* Ensures content pushes textarea upwards */
+      border: 1px solid var(--border-light);
+      position: relative;
+      z-index: 2;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+      transition: background-color 0.3s;
+    }
+
+    .upload-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: var(--text-subdued);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      margin: 4px 4px 4px 0;
+      flex-shrink: 0;
+    }
+
+    .upload-btn:hover {
+      background: var(--border-light);
+      color: var(--text-primary);
+    }
+
+    .input-core {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .file-indicator {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.75rem;
+      color: var(--accent-lavender);
+      background: var(--tag-bg);
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin: 4px 16px 0 16px;
+      width: fit-content;
+    }
+
+    .remove-file {
+      cursor: pointer;
+      color: var(--text-subdued);
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    .remove-file:hover {
+      color: var(--status-risk);
+    }
+
+    /* Auto-Growing Textarea */
+    textarea {
+      width: 100%;
+      background: transparent;
+      border: none;
+      padding: 12px 16px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 1rem;
+      resize: none;
+      outline: none;
+      overflow-y: hidden;
+      min-height: 44px;
+      max-height: 150px;
+      line-height: 1.4;
+    }
+
+    textarea::placeholder {
+      color: var(--text-subdued);
+    }
+
+    /* --- Action Buttons --- */
+    .actions-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+      margin-bottom: 2px;
+    }
+
+    .mic-btn,
+    .send-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+
+    .mic-btn {
+      background: transparent;
+      color: var(--text-subdued);
+    }
+
+    .mic-btn:hover {
+      background: var(--hover-lavender);
+      color: var(--accent-lavender);
+    }
+
+    .send-btn {
+      background-color: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border-light);
+      transition: background-color 0.3s;
+    }
+
+    .send-btn:hover {
+      transform: scale(1.05);
+      background-color: var(--bg-surface);
+      color: var(--accent-sage);
+    }
+
+    .footer-note {
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-subdued);
+      margin-top: 24px;
+      font-weight: 300;
+    }
+
+    .history-toast {
+      position: absolute;
+      top: 80px;
+      right: 40px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      padding: 12px 20px;
+      border-radius: 8px;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      box-shadow: var(--shadow-base);
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: all 0.3s ease;
+      pointer-events: none;
+      z-index: 200;
+    }
+
+    .history-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ─── Hamburger button (hidden on desktop) ─── */
+    .hamburger-btn {
+      display: none;
+      background: transparent;
+      border: none;
+      color: var(--text-subdued);
+      cursor: pointer;
+      padding: 6px;
+      z-index: 310;
+    }
+    .hamburger-btn svg { width: 24px; height: 24px; }
+    .hamburger-btn:hover { color: var(--accent-lavender); }
+
+    /* ─── Mobile sidebar overlay ─── */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 299;
+    }
+    .sidebar-overlay.open { display: block; }
+
+    /* --- Responsiveness --- */
+    @media (max-width: 768px) {
+      nav {
+        padding: 0 20px;
+      }
+
+      .hamburger-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .nav-right {
+        gap: 12px;
+      }
+
+      /* ─ Sidebar drawer ─ */
+      .nav-links {
+        position: fixed;
+        top: 0;
+        right: -280px;
+        width: 270px;
+        height: 100vh;
+        background: var(--nav-bg);
+        backdrop-filter: blur(16px);
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0;
+        padding: 80px 24px 32px;
+        box-shadow: -4px 0 24px rgba(0,0,0,0.3);
+        transition: right 0.3s ease;
+        z-index: 300;
+        overflow-y: auto;
+        display: flex;
+      }
+      .nav-links.open {
+        right: 0;
+      }
+      .nav-links a,
+      .nav-links button.theme-toggle {
+        width: 100%;
+        padding: 14px 0;
+        font-size: 1rem;
+        border-bottom: 1px solid var(--border-light);
+      }
+      .nav-links .theme-toggle {
+        justify-content: flex-start;
+        margin-left: 0;
+        gap: 8px;
+      }
+
+      .user-profile {
+        padding-left: 0;
+        border-left: none;
+      }
+
+      .user-name {
+        display: none;
+      }
+
+      .container {
+        padding-top: 80px;
+      }
+
+      .chat-area {
+        padding: 20px 10px;
+      }
+
+      .ai-bubble,
+      .user-bubble {
+        max-width: 90%;
+        padding: 16px;
+      }
+
+      .input-section {
+        padding: 0 10px;
+      }
+
+      .input-glow {
+        margin: 0;
+      }
+    }
+
+
+    /* ─── Additions for Auth Screen and other ported elements ─── */
+    #auth-screen {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%;
+      max-width: 420px;
+      background: var(--bg-card);
+      padding: 40px;
+      border-radius: 24px;
+      border: 1px solid var(--border-light);
+      box-shadow: var(--shadow-base);
+      text-align: center;
+      animation: softFadeIn 0.4s ease;
+      z-index: 50;
+    }
+
+    #auth-screen h1 {
+      font-size: 2.4rem;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+
+    #auth-screen p {
+      color: var(--text-subdued);
+      margin-bottom: 1.6rem;
+      font-size: 1rem;
+    }
+
+    .auth-tabs {
+      display: flex;
+      margin-bottom: 1.5rem;
+      border-radius: 12px;
+      background: var(--bg-surface);
+      padding: 4px;
+    }
+
+    .auth-tab {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: transparent;
+      color: var(--text-subdued);
+      font-size: 0.95rem;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .auth-tab.active {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .auth-error {
+      color: var(--status-risk);
+      font-size: 0.85rem;
+      min-height: 1.2rem;
+      margin-top: 0.5rem;
+    }
+
+    .auth-success {
+      color: var(--status-normal);
+      font-size: 0.85rem;
+      min-height: 1.2rem;
+      margin-top: 0.5rem;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .input-group input {
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border-light);
+      background: var(--input-bg);
+      color: var(--text-primary);
+      font-size: 1rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .input-group input:focus {
+      border-color: var(--accent-lavender);
+    }
+
+    #login-btn,
+    #reg-btn {
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      background: var(--accent-lavender);
+      color: #111;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 8px;
+    }
+
+    #login-btn:hover,
+    #reg-btn:hover {
+      opacity: 0.9;
+    }
+
+    #login-btn:disabled,
+    #reg-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Typography & Markdown styling overrides for messages */
+    .ai-bubble strong,
+    .user-bubble strong {
+      font-weight: 600;
+      color: var(--accent-lavender);
+    }
+
+    .ai-bubble h1,
+    .ai-bubble h2,
+    .ai-bubble h3 {
+      color: var(--accent-lavender);
+      margin: 0.8rem 0 0.4rem;
+      font-size: 1.1em;
+    }
+
+    .ai-bubble ul,
+    .ai-bubble ol {
+      padding-left: 1.5rem;
+      margin: 0.5rem 0;
+    }
+
+    .ai-bubble li {
+      margin: 0.25rem 0;
+    }
+
+    .ai-bubble hr {
+      border: none;
+      border-top: 1px solid var(--border-light);
+      margin: 1rem 0;
+    }
+
+    .ai-bubble code {
+      background: var(--bg-surface);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+
+    /* Hospital Cards and PDFs styled to new theme */
+    .hospital-cards {
+      align-self: flex-start;
+      max-width: 90%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      margin-top: 8px;
+      margin-bottom: 32px;
+    }
+
+    .cards-header {
+      font-size: 0.85rem;
+      color: var(--accent-sage);
+      font-weight: 600;
+    }
+
+    .hospital-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: border-color 0.2s;
+    }
+
+    .hospital-card:hover {
+      border-color: var(--accent-sage);
+    }
+
+    .book-appointment-footer {
+      display: flex;
+      justify-content: center;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-light);
+      margin-top: 8px;
+    }
+
+    .book-appointment-btn {
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent-sage), var(--accent-lavender));
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .book-appointment-btn:hover {
+      filter: brightness(0.98);
+      transform: translateY(-1px);
+    }
+
+    .h-name {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 1rem;
+    }
+
+    .h-meta {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .h-rating {
+      color: var(--accent-sage);
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .h-phone {
+      color: var(--text-subdued);
+      font-size: 0.85rem;
+    }
+
+    .h-link {
+      color: var(--accent-lavender);
+      text-decoration: none;
+      font-size: 0.85rem;
+      margin-top: 4px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .h-link:hover {
+      text-decoration: underline;
+    }
+
+    .hospital-error {
+      background: var(--bg-card);
+      border: 1px solid var(--status-risk);
+      color: var(--status-risk);
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      align-self: flex-start;
+      margin-bottom: 24px;
+    }
+
+    .action-btns-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .action-btn {
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .action-btn:hover {
+      transform: scale(1.02);
+      opacity: 0.9;
+    }
+
+    .action-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .pdf-download-btn {
+      background: var(--status-risk);
+      color: #fff;
+    }
+
+    .new-session-btn {
+      background: var(--accent-lavender);
+      color: #111;
+    }
+
+    .hospital-action-btn {
+      background: var(--accent-sage);
+      color: #111;
+    }
+
+    .disclaimer {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-light);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 0.8rem;
+      color: var(--text-subdued);
+      text-align: center;
+      margin: 16px auto;
+      max-width: 90%;
+    }
+
+    .session-complete-banner {
+      background: var(--bg-card);
+      border: 1px solid var(--accent-sage);
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      margin: 16px auto;
+      max-width: 90%;
+    }
+
+    .session-complete-banner h3 {
+      color: var(--accent-sage);
+      margin-bottom: 8px;
+      font-size: 1.1rem;
+    }
+
+    .session-complete-banner p {
+      color: var(--text-primary);
+      font-size: 0.9rem;
+    }
+
+    /* Disable input */
+    .input-glow.disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    /* Hide chat initially */
+    #chat-screen {
+      display: none;
+    }
+
+    .typing-indicator.ai-message {
+      margin-bottom: 0;
+    }
+
+    .dot-flashing {
+      width: 8px;
+      height: 8px;
+      border-radius: 4px;
+      background-color: var(--accent-sage);
+      animation: dot-flashing 1s infinite linear alternate;
+      animation-delay: 0.5s;
+      position: relative;
+    }
+
+    .dot-flashing::before,
+    .dot-flashing::after {
+      content: '';
+      display: inline-block;
+      position: absolute;
+      top: 0;
+      width: 8px;
+      height: 8px;
+      border-radius: 4px;
+      background-color: var(--accent-sage);
+      animation: dot-flashing 1s infinite alternate;
+    }
+
+    .dot-flashing::before {
+      left: -12px;
+      animation-delay: 0s;
+    }
+
+    .dot-flashing::after {
+      left: 12px;
+      animation-delay: 1s;
+    }
+
+    @keyframes dot-flashing {
+      0% {
+        background-color: var(--accent-sage);
+      }
+
+      50%,
+      100% {
+        background-color: var(--border-light);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Auth Screen (from index2 with generic new UI styling applied via class/ids) -->
+  <div id="auth-screen">
+    <h1>BluCare+</h1>
+    <p>A safe, private space for your health journey.</p>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="login-tab" onclick="switchAuthTab('login')">Login</button>
+      <button class="auth-tab" id="register-tab" onclick="switchAuthTab('register')">Create Account</button>
+    </div>
+    <div class="input-group" id="login-form">
+      <input id="login-name" type="text" placeholder="Your name..." autocomplete="off" />
+      <input id="login-password" type="password" placeholder="Password..." autocomplete="off" />
+      <button id="login-btn" onclick="doLogin()">Login</button>
+      <div class="auth-error" id="login-error"></div>
+    </div>
+    <div class="input-group" id="register-form" style="display:none;">
+      <input id="reg-name" type="text" placeholder="Choose a name..." autocomplete="off" />
+      <input id="reg-password" type="password" placeholder="Choose a password (min 4 chars)..." autocomplete="off" />
+      <input id="reg-password2" type="password" placeholder="Confirm password..." autocomplete="off" />
+      <button id="reg-btn" onclick="doRegister()">Create Account</button>
+      <div class="auth-error" id="reg-error"></div>
+    </div>
+  </div>
+
+  <!-- Chat Screen derived from chat.html new UI layout -->
+  <div id="chat-screen">
+    <nav>
+      <div class="brand">
+        <div class="brand-dot" id="statusDot"></div>
+        BluCare+
+        <!-- Phase Badge (hidden) -->
+        <span id="phase-badge" class="status-badge" style="display:none;"></span>
+      </div>
+      <div class="nav-right">
+        <!-- Hamburger (mobile only) -->
+        <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleSidebar()" aria-label="Open menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+        <div class="nav-links" id="navLinks">
+          <a id="sessions-link" href="/my-sessions">Sessions</a>
+          <a id="new-session-header-btn" onclick="startNewSession();closeSidebar()">New Session</a>
+          <a id="temp-session-header-btn" onclick="startTempSession();closeSidebar()">Temp Session</a>
+          <a class="ambulance-header-btn" href="/nearby-ambulance">Ambulance</a>
+          <a href="https://thiago-lathy-smarmily.ngrok-free.dev" target="_blank" rel="noopener">Interactive Yukti</a>
+          <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="Toggle Theme">
+            <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"></svg>
+          </button>
+          <!-- Logout button matching chat.html style -->
+          <a onclick="doLogout();closeSidebar()" style="color:var(--status-risk);cursor:pointer;">Logout</a>
+        </div>
+        <div class="user-profile">
+          <div class="user-avatar" id="userAvatar">U</div>
+          <div class="user-name" id="userNameLabel">Hi, User</div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Mobile sidebar overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+    <div class="container">
+      <!-- Messages container uses the ID Required -->
+      <section class="chat-area" id="messages"></section>
+
+      <!-- Typing indicator rests here -->
+      <div class="message ai-message typing-indicator" id="typing" style="display:none; padding-left: 20px;">
+        <div class="speaker-label">Yukti+</div>
+        <div class="ai-bubble" style="padding: 16px 28px; width: fit-content;">
+          <br />
+          <div class="dot-flashing"></div>
+        </div>
+      </div>
+
+      <!-- Input area -->
+      <section class="input-section" id="input-bar">
+        <div class="input-glow" id="inputGlow">
+          <div class="input-wrapper">
+            <!-- Upload button visual mock from chat.html -->
+            <button class="upload-btn" id="uploadBtn" title="Attach file">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+            <div class="input-core">
+              <textarea id="msg-input" placeholder="Message BluCare..." rows="1"></textarea>
+            </div>
+            <div class="actions-container">
+              <button class="mic-btn" title="Voice Assistant">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                  <line x1="12" y1="19" x2="12" y2="22"></line>
+                </svg>
+              </button>
+              <!-- Send button uses required ID -->
+              <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Send Message">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <p class="footer-note">A safe, private space for your health journey.</p>
+      </section>
+    </div>
+  </div>
+
+  <!-- The original JS Logic with injected rules-based replacements -->
+  <script>
+    // ─── Theme Toggle ──────────────────────────────────
+    function updateThemeIcon(theme) {
+      const themeIcon = document.getElementById('themeIcon');
+      if (themeIcon) {
+        if (theme === 'light') {
+          themeIcon.innerHTML = `<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>`;
+        } else {
+          themeIcon.innerHTML = `<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>`;
+        }
+      }
+    }
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('blucare_theme', next);
+      updateThemeIcon(next);
+    }
+    (function () {
+      const t = localStorage.getItem('blucare_theme') || 'dark';
+      updateThemeIcon(t);
+    })();
+
+    /* ─── Mobile sidebar toggle ─── */
+    function toggleSidebar() {
+      document.getElementById('navLinks').classList.toggle('open');
+      document.getElementById('sidebarOverlay').classList.toggle('open');
+    }
+    function closeSidebar() {
+      document.getElementById('navLinks').classList.remove('open');
+      document.getElementById('sidebarOverlay').classList.remove('open');
+    }
+
+    // ─── State ──────────────────────────────────────────
+    let userId = "";
+    let sessionId = "";
+    let userName = "";
+    let currentPhase = "greeting";
+    let sending = false;
+    let lastDiagnosedDisease = "";
+    let conversationLog = [];
+    let tempSession = false;
+
+    const API = window.location.origin;
+    const HOSPITAL_API = `${window.location.origin}/proxy/hospitals`;
+
+    // ─── Refs ───────────────────────────────────────────
+    const authEl = document.getElementById("auth-screen");
+    const chatEl = document.getElementById("chat-screen");
+    const messagesEl = document.getElementById("messages");
+    const typingEl = document.getElementById("typing");
+    const msgInput = document.getElementById("msg-input");
+    const sendBtn = document.getElementById("send-btn");
+    const phaseBadge = document.getElementById("phase-badge");
+    const inputBar = document.getElementById("input-bar");
+
+    // ─── Enter-key bindings ─────────────────────────────
+    document.getElementById("login-password").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+    document.getElementById("reg-password2").addEventListener("keydown", e => { if (e.key === "Enter") doRegister(); });
+    msgInput.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) sendMessage(); });
+
+    // ─── Check if already logged in ────────────────────
+    (function checkAuth() {
+      const storedUser = localStorage.getItem("blucare_user_id");
+      const storedName = localStorage.getItem("blucare_user_name");
+      if (storedUser && storedName) {
+        userId = storedUser;
+        userName = storedName;
+        showChatScreen();
+      }
+    })();
+
+    // ─── Auth Tab Switching ─────────────────────────────
+    function switchAuthTab(tab) {
+      document.getElementById("login-tab").classList.toggle("active", tab === "login");
+      document.getElementById("register-tab").classList.toggle("active", tab === "register");
+      document.getElementById("login-form").style.display = tab === "login" ? "flex" : "none";
+      document.getElementById("register-form").style.display = tab === "register" ? "flex" : "none";
+      document.getElementById("login-error").textContent = "";
+      document.getElementById("reg-error").textContent = "";
+    }
+
+    // ─── Register ───────────────────────────────────────
+    async function doRegister() {
+      const name = document.getElementById("reg-name").value.trim();
+      const pass = document.getElementById("reg-password").value;
+      const pass2 = document.getElementById("reg-password2").value;
+      const errEl = document.getElementById("reg-error");
+      errEl.textContent = "";
+
+      if (!name) { errEl.textContent = "Please enter a name."; return; }
+      if (pass.length < 4) { errEl.textContent = "Password must be at least 4 characters."; return; }
+      if (pass !== pass2) { errEl.textContent = "Passwords do not match."; return; }
+
+      const btn = document.getElementById("reg-btn");
+      btn.disabled = true;
+      btn.textContent = "Creating account...";
+
+      try {
+        const res = await fetch(`${API}/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, password: pass }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          errEl.className = "auth-success";
+          errEl.textContent = "Account created! You can now login.";
+          // Auto-switch to login tab after 1s
+          setTimeout(() => {
+            switchAuthTab("login");
+            document.getElementById("login-name").value = name;
+            errEl.className = "auth-error";
+            errEl.textContent = "";
+          }, 1200);
+        } else {
+          errEl.textContent = data.message || "Registration failed.";
+        }
+      } catch (err) {
+        errEl.textContent = "Network error: " + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Create Account";
+      }
+    }
+
+    // ─── Login ──────────────────────────────────────────
+    async function doLogin() {
+      const name = document.getElementById("login-name").value.trim();
+      const pass = document.getElementById("login-password").value;
+      const errEl = document.getElementById("login-error");
+      errEl.textContent = "";
+
+      if (!name) { errEl.textContent = "Please enter your name."; return; }
+      if (!pass) { errEl.textContent = "Please enter your password."; return; }
+
+      const btn = document.getElementById("login-btn");
+      btn.disabled = true;
+      btn.textContent = "Logging in...";
+
+      try {
+        const res = await fetch(`${API}/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, password: pass }),
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          userId = data.user_id;
+          userName = data.display_name || name;
+          localStorage.setItem("blucare_user_id", userId);
+          localStorage.setItem("blucare_user_name", userName);
+          showChatScreen();
+        } else {
+          errEl.textContent = data.message || "Login failed.";
+        }
+      } catch (err) {
+        errEl.textContent = "Network error: " + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Login";
+      }
+    }
+
+    // ─── Logout ─────────────────────────────────────────
+    function doLogout() {
+      localStorage.removeItem("blucare_user_id");
+      localStorage.removeItem("blucare_user_name");
+      userId = "";
+      userName = "";
+      sessionId = "";
+      tempSession = false;
+      conversationLog = [];
+      messagesEl.innerHTML = "";
+      chatEl.style.display = "none";
+      authEl.style.display = "block";
+      // Reset user name label and avatar
+      document.getElementById('userNameLabel').textContent = "Hi, User";
+      document.getElementById('userAvatar').textContent = "U";
+      // Clear form fields
+      document.getElementById("login-name").value = "";
+      document.getElementById("login-password").value = "";
+      document.getElementById("login-error").textContent = "";
+    }
+
+    // ─── Show Chat Screen & auto-start session ─────────
+    async function showChatScreen() {
+      authEl.style.display = "none";
+      chatEl.style.display = "flex";
+      enableInput();
+      updatePhase("greeting");
+      conversationLog = [];
+      lastDiagnosedDisease = "";
+
+      // Update user name and avatar
+      if (userName) {
+        document.getElementById('userNameLabel').textContent = "Hi, " + userName;
+        document.getElementById('userAvatar').textContent = userName.charAt(0).toUpperCase();
+      }
+
+      // Update sessions link with user_id
+      const sessLink = document.getElementById("sessions-link");
+      if (sessLink) sessLink.href = "/my-sessions";
+
+      // Auto-create a new session
+      try {
+        const res = await fetch(`${API}/start-session`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: userId, name: userName }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        sessionId = data.session_id;
+        await sendInitialGreeting();
+        msgInput.focus();
+      } catch (err) {
+        console.error(err);
+        addMessage("bot", "Failed to start session: " + err.message);
+      }
+    }
+
+    // ─── Update phase badge ─────────────────────────────
+    function updatePhase(phase) {
+      currentPhase = phase;
+      phaseBadge.className = "phase-badge";
+      if (phase === "greeting") {
+        phaseBadge.classList.add("phase-greeting");
+        phaseBadge.textContent = "Greeting";
+        msgInput.placeholder = "Tell me about yourself...";
+      } else if (phase === "gathering") {
+        phaseBadge.classList.add("phase-gathering");
+        phaseBadge.textContent = "Gathering";
+        msgInput.placeholder = "Describe your symptoms...";
+      } else if (phase === "awaiting_choice") {
+        phaseBadge.classList.add("phase-choice");
+        phaseBadge.textContent = "Your Choice";
+        msgInput.placeholder = "Type: medicine / remedies / tests / all ...";
+      } else if (phase === "diagnosis") {
+        phaseBadge.classList.add("phase-diagnosis");
+        phaseBadge.textContent = "Assessment";
+        msgInput.placeholder = "Ask a follow-up question...";
+      } else if (phase === "completed") {
+        phaseBadge.classList.add("phase-completed");
+        phaseBadge.textContent = "Completed";
+        msgInput.placeholder = "Session completed";
+        disableInput();
+      }
+    }
+
+    function disableInput() {
+      inputBar.classList.add("disabled");
+      msgInput.disabled = true;
+      sendBtn.disabled = true;
+    }
+
+    function enableInput() {
+      inputBar.classList.remove("disabled");
+      msgInput.disabled = false;
+      sendBtn.disabled = false;
+    }
+
+    // ─── Start new session from chat (header button or post-PDF) ───
+    async function startNewSession() {
+      messagesEl.innerHTML = "";
+      conversationLog = [];
+      lastDiagnosedDisease = "";
+      enableInput();
+      updatePhase("greeting");
+
+      try {
+        const res = await fetch(`${API}/start-session`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: userId, name: userName }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        sessionId = data.session_id;
+        await sendInitialGreeting();
+        msgInput.focus();
+      } catch (err) {
+        console.error(err);
+        addMessage("bot", "Failed to start new session: " + err.message);
+      }
+    }
+
+    // ─── Start temporary session (server-backed, marked temporary) ───
+    async function startTempSession() {
+      tempSession = true;
+      // Show chat screen, hide auth
+      authEl.style.display = "none";
+      chatEl.style.display = "flex";
+      messagesEl.innerHTML = "";
+      conversationLog = [];
+      lastDiagnosedDisease = "";
+      userName = "Guest";
+      userId = `guest-${Date.now()}`;
+      enableInput();
+      updatePhase("greeting");
+      // Update navbar user info
+      document.getElementById('userNameLabel').textContent = "Hi, Guest";
+      document.getElementById('userAvatar').textContent = "G";
+
+      // Create a real session on the server so /chat works
+      try {
+        const res = await fetch(`${API}/start-session`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: userId, name: "Guest", temporary: true }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        sessionId = data.session_id;
+        addMessage("bot", "👋 Welcome to a temporary session! Your conversation won't be saved. How can I help you today?");
+        msgInput.focus();
+      } catch (err) {
+        console.error(err);
+        addMessage("bot", "Failed to start temp session: " + err.message);
+      }
+    }
+
+    // ─── Send initial "hi" to get the bot's greeting ───
+    async function sendInitialGreeting() {
+      showTyping(true);
+      try {
+        const res = await fetch(`${API}/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: userId,
+            session_id: sessionId,
+            message: `Hi, my name is ${userName}`,
+          }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        await processStream(res);
+      } catch (err) {
+        console.error(err);
+        showTyping(false);
+        addMessage("bot", `Hi ${userName}! I'm Yukti, your AI health companion. Could you share your age? It helps me give better guidance!`);
+      }
+    }
+
+    // ─── Send Message ──────────────────────────────────
+    async function sendMessage() {
+      const text = msgInput.value.trim();
+      if (!text || sending) return;
+
+      sending = true;
+      sendBtn.disabled = true;
+      msgInput.value = "";
+
+      addMessage("user", text);
+      showTyping(true);
+
+      try {
+        const res = await fetch(`${API}/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: userId,
+            session_id: sessionId,
+            message: text,
+          }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        await processStream(res);
+      } catch (err) {
+        console.error(err);
+        showTyping(false);
+        addMessage("bot", "Connection error: " + err.message + "\nPlease try again.");
+      } finally {
+        sending = false;
+        sendBtn.disabled = false;
+        if (currentPhase !== "completed") msgInput.focus();
+      }
+    }
+
+    // ─── Process SSE Stream ────────────────────────────
+    async function processStream(res) {
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let botText = "";
+      let botEl = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n");
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6).trim();
+          if (!payload) continue;
+
+          try {
+            const data = JSON.parse(payload);
+
+            if (data.error) {
+              addMessage("bot", "Error: " + data.error);
+              break;
+            }
+
+            if (data.token) {
+              if (!botEl) {
+                showTyping(false);
+                botEl = addMessage("bot", "");
+              }
+              botText += data.token;
+              botEl.innerHTML = renderMarkdown(botText);
+              scrollToBottom();
+            }
+
+            if (data.done) {
+              showTyping(false);
+              if (data.phase) updatePhase(data.phase);
+              if (botText) conversationLog.push({ role: "assistant", content: botText });
+              if (data.candidates && data.candidates.length > 0) {
+                lastDiagnosedDisease = data.candidates[0].disease || "";
+              }
+              if (data.phase === "completed") showCompletionActions();
+            }
+          } catch (_) { /* skip non-JSON */ }
+        }
+      }
+
+      if (!botEl) {
+        showTyping(false);
+        addMessage("bot", "I didn't get a response. Please try again.");
+      }
+    }
+
+    // ─── Show completion actions (PDF + Hospital + New Session) ──
+    function showCompletionActions() {
+      const disc = document.createElement("div");
+      disc.className = "disclaimer";
+      disc.textContent = "Disclaimer: This is an AI-assisted preliminary assessment only. It does not replace professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider.";
+      messagesEl.appendChild(disc);
+
+      const wrap = document.createElement("div");
+      wrap.className = "action-btns-wrap";
+      wrap.id = "completion-actions";
+
+      const pdfBtn = document.createElement("button");
+      pdfBtn.id = "pdf-btn";
+      pdfBtn.className = "action-btn pdf-download-btn";
+      pdfBtn.innerHTML = "Download Report (PDF)";
+      pdfBtn.onclick = downloadPDF;
+      wrap.appendChild(pdfBtn);
+
+      if (lastDiagnosedDisease) {
+        const hospBtn = document.createElement("button");
+        hospBtn.id = "hospital-btn";
+        hospBtn.className = "action-btn hospital-action-btn";
+        hospBtn.innerHTML = "Find Nearby Hospitals";
+        hospBtn.onclick = findNearbyHospitals;
+        wrap.appendChild(hospBtn);
+      }
+
+      const newBtn = document.createElement("button");
+      newBtn.className = "action-btn new-session-btn";
+      newBtn.innerHTML = "+ New Session";
+      newBtn.onclick = startNewSession;
+      wrap.appendChild(newBtn);
+
+      messagesEl.appendChild(wrap);
+      scrollToBottom();
+    }
+
+    // ─── Helpers ────────────────────────────────────────
+    function addMessage(role, text) {
+      const el = document.createElement("div");
+      el.className = `message ${role === "bot" ? "ai-message" : "user-message"}`;
+
+      const label = document.createElement("div");
+      label.className = "speaker-label";
+      label.textContent = role === "bot" ? "BluCare+" : (userName || "You");
+      el.appendChild(label);
+
+      const bubble = document.createElement("div");
+      bubble.className = role === "bot" ? "ai-bubble" : "user-bubble";
+      bubble.innerHTML = role === "bot" ? renderMarkdown(text) : escapeHtml(text);
+      el.appendChild(bubble);
+
+      messagesEl.appendChild(el);
+      scrollToBottom();
+      if (text && role === "user") conversationLog.push({ role: "user", content: text });
+      return bubble;
+    }
+
+    function showTyping(show) {
+      typingEl.style.display = show ? "flex" : "none";
+      if (show) scrollToBottom();
+    }
+
+    function scrollToBottom() {
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function escapeHtml(t) {
+      return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // ─── Hospital feature ──────────────────────────────
+    async function findNearbyHospitals() {
+      const btn = document.getElementById("hospital-btn");
+      if (btn) { btn.disabled = true; btn.innerHTML = "Getting your location..."; }
+
+      let lat, lon;
+      try {
+        const pos = await new Promise((resolve, reject) =>
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 })
+        );
+        lat = pos.coords.latitude.toFixed(6);
+        lon = pos.coords.longitude.toFixed(6);
+      } catch (err) {
+        if (btn) { btn.disabled = false; btn.innerHTML = "Find Nearby Hospitals"; }
+        renderHospitalError("Location access denied or unavailable. Please allow location access and try again.");
+        return;
+      }
+
+      if (btn) { btn.innerHTML = "Searching nearby hospitals..."; }
+
+      const disease = lastDiagnosedDisease
+        .toLowerCase()
+        .replace(/[^a-z0-9 ]/g, "")
+        .trim()
+        .split(" ")[0];
+
+      try {
+        const res = await fetch(`${HOSPITAL_API}?disease=${encodeURIComponent(disease)}&lat=${lat}&lon=${lon}`, { signal: AbortSignal.timeout(15000) });
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+        const data = await res.json();
+        renderHospitalCards(data.results || [], disease, lat, lon);
+        if (btn) btn.innerHTML = "Search Again";
+        if (btn) btn.disabled = false;
+      } catch (err) {
+        if (btn) { btn.disabled = false; btn.innerHTML = "Find Nearby Hospitals"; }
+        renderHospitalError("Could not fetch hospital data: " + err.message);
+      }
+    }
+
+    function renderHospitalCards(results, disease, lat, lon) {
+      const old = document.getElementById("hospital-cards");
+      if (old) old.remove();
+      if (!results || results.length === 0) {
+        renderHospitalError("No nearby hospitals found for \"" + disease + "\" at your location.");
+        return;
+      }
+      const wrap = document.createElement("div");
+      wrap.id = "hospital-cards";
+      wrap.className = "hospital-cards";
+      const header = document.createElement("div");
+      header.className = "cards-header";
+      header.textContent = `${results.length} nearby hospital${results.length > 1 ? 's' : ''} for "${disease}" near you:`;
+      wrap.appendChild(header);
+      results.forEach(h => {
+        const card = document.createElement("div");
+        card.className = "hospital-card";
+        const stars = h.rating ? "* ".repeat(Math.round(h.rating)) + ` ${h.rating}` : "";
+        card.innerHTML = `
         <div class="h-name">${escapeHtml(h.name || "Unknown")}</div>
         <div class="h-meta">
           ${stars ? `<span class="h-rating">${stars}</span>` : ""}
@@ -962,141 +1782,107 @@
         </div>
         ${h.link ? `<a class="h-link" href="${escapeHtml(h.link)}" target="_blank" rel="noopener">Open in Google Maps</a>` : ""}
       `;
-      wrap.appendChild(card);
-    });
-
-    messagesEl.appendChild(wrap);
-    scrollToBottom();
-  }
-
-  function renderHospitalError(msg) {
-    const old = document.getElementById("hospital-cards");
-    if (old) old.remove();
-    const el = document.createElement("div");
-    el.className = "hospital-error";
-    el.textContent = msg;
-    messagesEl.appendChild(el);
-    scrollToBottom();
-  }
-
-  // ─── PDF Report feature (uses session data from backend) ─────
-
-  async function downloadPDF() {
-    const btn = document.getElementById("pdf-btn");
-    if (!btn) return;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spin"></span> Generating PDF...';
-
-    const payload = {
-      user_id: userId,
-      session_id: sessionId,
-      timestamp: new Date().toISOString(),
-    };
-
-    try {
-      const res = await fetch(`${API}/generate-pdf`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        wrap.appendChild(card);
       });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || err.error || `HTTP ${res.status}`);
-      }
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `RagBluCare_Report_${new Date().toISOString().split("T")[0]}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-
-      btn.innerHTML = "PDF Downloaded!";
-
-      // Show redirect banner and start new session after a delay
-      showRedirectBanner();
-
-    } catch (err) {
-      console.error("PDF error:", err);
-      btn.innerHTML = "Failed -- Try Again";
-      setTimeout(() => { btn.disabled = false; btn.innerHTML = "Download Report (PDF)"; }, 3000);
+        // Add Book Appointment footer button
+        const footer = document.createElement('div');
+        footer.className = 'book-appointment-footer';
+        const bookBtn = document.createElement('button');
+        bookBtn.className = 'book-appointment-btn';
+        bookBtn.textContent = 'Book Appointment';
+        bookBtn.onclick = function() { /* intentionally empty for now */ };
+        footer.appendChild(bookBtn);
+        wrap.appendChild(footer);
+        messagesEl.appendChild(wrap);
+      scrollToBottom();
     }
-  }
 
-  function showRedirectBanner() {
-    // For temp sessions, delete now (before redirect)
-    const wasTempSession = isTemporary;
-    const oldSid = sessionId;
+    function renderHospitalError(msg) {
+      const old = document.getElementById("hospital-cards");
+      if (old) old.remove();
+      const el = document.createElement("div");
+      el.className = "hospital-error";
+      el.textContent = msg;
+      messagesEl.appendChild(el);
+      scrollToBottom();
+    }
 
-    const banner = document.createElement("div");
-    banner.className = "session-complete-banner";
-    banner.innerHTML = wasTempSession
-      ? `<h3>Quick Consult Complete</h3>
-         <p>Your report has been downloaded. This temporary session will be removed. Starting a new session in <span id="countdown">5</span> seconds...</p>`
-      : `<h3>Consultation Complete</h3>
-         <p>Your report has been downloaded. Starting a new session in <span id="countdown">5</span> seconds...</p>`;
-    messagesEl.appendChild(banner);
-    scrollToBottom();
+    // ─── PDF Report ─────────────────────────────────────
+    async function downloadPDF() {
+      const btn = document.getElementById("pdf-btn");
+      if (!btn) return;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spin"></span> Generating PDF...';
 
-    let seconds = 5;
-    const countdownEl = document.getElementById("countdown");
-    const interval = setInterval(() => {
-      seconds--;
-      if (countdownEl) countdownEl.textContent = seconds;
-      if (seconds <= 0) {
-        clearInterval(interval);
-        // Delete temp session before starting new one
-        if (wasTempSession && oldSid) {
-          deleteTempSession(userId, oldSid);
+      try {
+        const res = await fetch(`${API}/generate-pdf`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: userId, session_id: sessionId, timestamp: new Date().toISOString() }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || err.error || `HTTP ${res.status}`);
         }
-        isTemporary = false;
-        startNewSession();
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `RagBluCare_Report_${new Date().toISOString().split("T")[0]}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        btn.innerHTML = "PDF Downloaded!";
+        showRedirectBanner();
+      } catch (err) {
+        console.error("PDF error:", err);
+        btn.innerHTML = "Failed -- Try Again";
+        setTimeout(() => { btn.disabled = false; btn.innerHTML = "Download Report (PDF)"; }, 3000);
       }
-    }, 1000);
-  }
+    }
 
-  // Enhanced markdown renderer
-  function renderMarkdown(text) {
-    let html = escapeHtml(text);
+    function showRedirectBanner() {
+      const banner = document.createElement("div");
+      banner.className = "session-complete-banner";
+      banner.innerHTML = `<h3>Consultation Complete</h3>
+       <p>Your report has been downloaded. Starting a new session in <span id="countdown">5</span> seconds...</p>`;
+      messagesEl.appendChild(banner);
+      scrollToBottom();
 
-    // Bold
-    html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-    // Italic
-    html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
+      let seconds = 5;
+      const countdownEl = document.getElementById("countdown");
+      const interval = setInterval(() => {
+        seconds--;
+        if (countdownEl) countdownEl.textContent = seconds;
+        if (seconds <= 0) {
+          clearInterval(interval);
+          startNewSession();
+        }
+      }, 1000);
+    }
 
-    // Headings
-    html = html.replace(/^### (.+)$/gm, "<h3>$1</h3>");
-    html = html.replace(/^## (.+)$/gm,  "<h2>$1</h2>");
-    html = html.replace(/^# (.+)$/gm,   "<h1>$1</h1>");
+    // ─── Markdown Renderer ──────────────────────────────
+    function renderMarkdown(text) {
+      let html = escapeHtml(text);
+      html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+      html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
+      html = html.replace(/^### (.+)$/gm, "<h3>$1</h3>");
+      html = html.replace(/^## (.+)$/gm, "<h2>$1</h2>");
+      html = html.replace(/^# (.+)$/gm, "<h1>$1</h1>");
+      html = html.replace(/^-{3,}$/gm, "<hr>");
+      html = html.replace(/^[*\-] (.+)$/gm, "<li>$1</li>");
+      html = html.replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`);
+      html = html.replace(/^\d+\.\s(.+)$/gm, "<li>$1</li>");
+      html = html.replace(/`(.+?)`/g, "<code>$1</code>");
+      html = html.replace(/\n/g, "<br>");
+      html = html.replace(/<\/h[123]><br>/g, m => m.replace(/<br>/, ""));
+      html = html.replace(/<hr><br>/g, "<hr>");
+      html = html.replace(/<\/ul><br>/g, "</ul>");
+      return html;
+    }
 
-    // Horizontal rules
-    html = html.replace(/^-{3,}$/gm, "<hr>");
-
-    // Bullet lists
-    html = html.replace(/^[*\-] (.+)$/gm, "<li>$1</li>");
-    html = html.replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`);
-
-    // Numbered lists
-    html = html.replace(/^\d+\.\s(.+)$/gm, "<li>$1</li>");
-
-    // Inline code
-    html = html.replace(/`(.+?)`/g, "<code>$1</code>");
-
-    // Line breaks
-    html = html.replace(/\n/g, "<br>");
-
-    // Clean up double <br> after block elements
-    html = html.replace(/<\/h[123]><br>/g, m => m.replace(/<br>/, ""));
-    html = html.replace(/<hr><br>/g, "<hr>");
-    html = html.replace(/<\/ul><br>/g, "</ul>");
-
-    return html;
-  }
-</script>
-
+  </script>
 </body>
+
 </html>

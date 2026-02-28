@@ -186,7 +186,7 @@ Keep it short, human, and empathetic with 1-2 emojis."""
 # ── Shared safety prompt for assessment & detail phases ───
 
 DIAGNOSIS_SYSTEM_PROMPT = """\
-You are BluCare 💙, an empathetic, knowledgeable AI health companion.
+You are BluCare , an empathetic, knowledgeable AI health companion.
 You help patients understand their symptoms and guide them toward appropriate care.
 
 STRICT SAFETY RULES — you MUST follow:
@@ -233,7 +233,7 @@ Provide a concise, warm assessment using this EXACT structure:
 
 {severity_first_note}
 
-🩺 **Assessment Summary**
+ **Assessment Summary**
 
 Based on the information you've shared, {name}, here are the most likely possibilities:
 
@@ -248,7 +248,7 @@ Based on the information you've shared, {name}, here are the most likely possibi
 
 ---
 
-🌡️ **Severity Assessment**
+ **Severity Assessment**
 How serious this appears and why. Address the patient warmly.
 {age_dosage_note}
 
@@ -284,7 +284,7 @@ CRITICAL RULES:
 # ─────────────── DETAIL prompt (meds / remedies / tests) ─────────────
 
 DETAIL_SYSTEM_PROMPT = """\
-You are BluCare 💙, continuing to help a patient who already received
+You are BluCare , continuing to help a patient who already received
 their assessment. Now provide the specific information they requested.
 
 STRICT SAFETY RULES:

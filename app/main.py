@@ -37,6 +37,9 @@ from app.models import (
     StartSessionRequest,
     StartSessionResponse,
     ChatRequest,
+    RegisterRequest,
+    LoginRequest,
+    AuthResponse,
 )
 from app.llm_client import LLMClient
 from app.embeddings import EmbeddingManager
@@ -158,6 +161,50 @@ async def health_check():
         "firebase_active": firebase_mgr.is_firebase_active if firebase_mgr else False,
         "diagnosis_engine": diagnosis_engine is not None,
     }
+
+
+# ═══════════════════════════════════════════════════════════
+# POST /register  — Create a new user account
+# ═══════════════════════════════════════════════════════════
+
+@app.post("/register", response_model=AuthResponse)
+async def register(req: RegisterRequest):
+    if not req.name or not req.password:
+        raise HTTPException(400, "Name and password are required")
+    if len(req.password) < 4:
+        raise HTTPException(400, "Password must be at least 4 characters")
+    if not firebase_mgr:
+        raise HTTPException(503, "Service unavailable")
+
+    result = firebase_mgr.register_user(req.name, req.password)
+    return AuthResponse(**result)
+
+
+# ═══════════════════════════════════════════════════════════
+# POST /login  — Authenticate an existing user
+# ═══════════════════════════════════════════════════════════
+
+@app.post("/login", response_model=AuthResponse)
+async def login(req: LoginRequest):
+    if not req.name or not req.password:
+        raise HTTPException(400, "Name and password are required")
+    if not firebase_mgr:
+        raise HTTPException(503, "Service unavailable")
+
+    result = firebase_mgr.authenticate_user(req.name, req.password)
+    return AuthResponse(**result)
+
+
+# ═══════════════════════════════════════════════════════════
+# POST /admin/clear-records  — Delete all old Firebase data
+# ═══════════════════════════════════════════════════════════
+
+@app.post("/admin/clear-records")
+async def clear_records():
+    if not firebase_mgr:
+        raise HTTPException(503, "Service unavailable")
+    result = firebase_mgr.clear_all_records()
+    return {"status": "cleared", **result}
 
 
 # ═══════════════════════════════════════════════════════════

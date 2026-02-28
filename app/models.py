@@ -94,3 +94,24 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     response: str
     diseases: list[RetrievalResult] = Field(default_factory=list)
+
+
+# ═══════════════════════════════════════════════════════════
+# Authentication Models
+# ═══════════════════════════════════════════════════════════
+
+class RegisterRequest(BaseModel):
+    name: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    name: str
+    password: str
+
+
+class AuthResponse(BaseModel):
+    success: bool
+    user_id: str = ""
+    display_name: str = ""
+    message: str = ""

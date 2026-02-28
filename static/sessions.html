@@ -1,9 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BluCare — My Sessions</title>
+  <title>BluCare+ — My Sessions</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    (function() {
+      const t = localStorage.getItem('blucare_theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -159,6 +168,13 @@
     }
     .session-detail.active { display: block; }
 
+    /* Keep detail area constrained and scrollable to avoid page jumps */
+    .session-detail .read-only-messages {
+      max-height: calc(100vh - 240px);
+      overflow-y: auto;
+      padding-right: 8px;
+    }
+
     .detail-header {
       display: flex;
       align-items: center;
@@ -252,12 +268,13 @@
       border-radius: 14px;
     }
   </style>
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
 
   <div class="page-header">
     <h1>My Sessions</h1>
-    <a class="back-btn" href="/nearby-ambulance" style="background:#dc2626;color:#fff;border-color:#dc2626;border-radius:10px;padding:0.5rem 1rem;font-size:0.85rem;">🚑 Ambulance</a>
+    <a class="back-btn ambulance-header-btn" href="/nearby-ambulance">Ambulance</a>
     <a class="back-btn" href="/">Back to Chat</a>
   </div>
 
@@ -274,13 +291,14 @@
 
   // Get userId from localStorage (same as chat page)
   const userId = localStorage.getItem("blucare_user_id");
+  const storedName = localStorage.getItem("blucare_user_name");
 
-  if (!userId) {
+  if (!userId || !storedName) {
     contentEl.innerHTML = `
       <div class="empty-state">
-        <h2>No sessions found</h2>
-        <p>Start a consultation first to see your session history.</p>
-        <a href="/">Start a Consultation</a>
+        <h2>Not logged in</h2>
+        <p>Please login to view your session history.</p>
+        <a href="/">Login</a>
       </div>
     `;
   } else {
@@ -367,6 +385,13 @@
       const session = await res.json();
 
       renderSessionDetail(session, detailEl, listEl);
+      // reset scroll to top of detail container to avoid carry-over
+      const msgsEl = detailEl.querySelector('.read-only-messages');
+      if (msgsEl) msgsEl.scrollTop = 0;
+      // Defensive: ensure top header back link still present
+      ensureHeaderBackLink();
+      // Ensure header back link exists (defensive restore)
+      ensureHeaderBackLink();
     } catch (err) {
       console.error(err);
       detailEl.innerHTML = `
@@ -401,6 +426,11 @@
       <div class="read-only-messages">${msgsHtml}</div>
       <div class="read-only-notice">This is a read-only view of a past session.</div>
     `;
+    // reset scroll to top of detail container to avoid carry-over
+    const msgs = detailEl.querySelector('.read-only-messages');
+    if (msgs) msgs.scrollTop = 0;
+    // Defensive: ensure top header back link still present
+    ensureHeaderBackLink();
   }
 
   function closeDetail() {
@@ -408,6 +438,20 @@
     const detailEl = document.getElementById("session-detail");
     if (listEl) listEl.style.display = "flex";
     if (detailEl) { detailEl.className = "session-detail"; detailEl.innerHTML = ""; }
+  }
+
+  // Ensure the top-page Back to Chat link exists (defensive)
+  function ensureHeaderBackLink() {
+    const header = document.querySelector('.page-header');
+    if (!header) return;
+    let back = header.querySelector('.back-btn[href="/"]');
+    if (!back) {
+      back = document.createElement('a');
+      back.className = 'back-btn';
+      back.href = '/';
+      back.textContent = 'Back to Chat';
+      header.appendChild(back);
+    }
   }
 
   // ─── Helpers ────────────────────────────────────────

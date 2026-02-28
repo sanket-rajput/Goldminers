@@ -15,6 +15,7 @@ Firestore layout:
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
@@ -44,6 +45,8 @@ class FirebaseManager:
         self._initialized = False
         # In-memory fallback: {user_id: {session_id: SessionData}}
         self._mem: dict[str, dict[str, SessionData]] = {}
+        # In-memory accounts fallback: {username: {name, password_hash, created_at}}
+        self._mem_accounts: dict[str, dict] = {}
 
     # ═══════════════════════════════════════════════════════
     # Initialisation
@@ -80,6 +83,110 @@ class FirebaseManager:
     @property
     def is_firebase_active(self) -> bool:
         return self._initialized and self._db is not None
+
+    # ═══════════════════════════════════════════════════════
+    # User Account Management
+    # ═══════════════════════════════════════════════════════
+
+    @staticmethod
+    def _hash_password(password: str) -> str:
+        """SHA-256 hash of the password."""
+        return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+    def register_user(self, name: str, password: str) -> dict:
+        """Create a new user account. Returns {success, user_id, message}."""
+        username = name.strip().lower().replace(" ", "_")
+        password_hash = self._hash_password(password)
+        now = datetime.now(timezone.utc).isoformat()
+
+        if self.is_firebase_active:
+            try:
+                doc_ref = self._db.collection("accounts").document(username)
+                doc = doc_ref.get()
+                if doc.exists:
+                    return {"success": False, "user_id": "", "message": "Account already exists. Please login."}
+                doc_ref.set({
+                    "name": name.strip(),
+                    "password_hash": password_hash,
+                    "created_at": now,
+                })
+                logger.info("Account created (Firestore): %s", username)
+                return {"success": True, "user_id": username, "message": "Account created successfully."}
+            except Exception as exc:
+                logger.error("Firestore register failed: %s — using memory.", exc)
+
+        # In-memory fallback
+        if username in self._mem_accounts:
+            return {"success": False, "user_id": "", "message": "Account already exists. Please login."}
+        self._mem_accounts[username] = {
+            "name": name.strip(),
+            "password_hash": password_hash,
+            "created_at": now,
+        }
+        logger.info("Account created (memory): %s", username)
+        return {"success": True, "user_id": username, "message": "Account created successfully."}
+
+    def authenticate_user(self, name: str, password: str) -> dict:
+        """Authenticate a user. Returns {success, user_id, display_name, message}."""
+        username = name.strip().lower().replace(" ", "_")
+        password_hash = self._hash_password(password)
+
+        if self.is_firebase_active:
+            try:
+                doc = self._db.collection("accounts").document(username).get()
+                if not doc.exists:
+                    return {"success": False, "user_id": "", "display_name": "", "message": "Account not found. Please register first."}
+                data = doc.to_dict()
+                if data.get("password_hash") != password_hash:
+                    return {"success": False, "user_id": "", "display_name": "", "message": "Incorrect password."}
+                logger.info("User authenticated (Firestore): %s", username)
+                return {"success": True, "user_id": username, "display_name": data.get("name", name), "message": "Login successful."}
+            except Exception as exc:
+                logger.error("Firestore auth failed: %s — trying memory.", exc)
+
+        # In-memory fallback
+        account = self._mem_accounts.get(username)
+        if not account:
+            return {"success": False, "user_id": "", "display_name": "", "message": "Account not found. Please register first."}
+        if account["password_hash"] != password_hash:
+            return {"success": False, "user_id": "", "display_name": "", "message": "Incorrect password."}
+        logger.info("User authenticated (memory): %s", username)
+        return {"success": True, "user_id": username, "display_name": account.get("name", name), "message": "Login successful."}
+
+    def clear_all_records(self) -> dict:
+        """Delete ALL data from Firestore (accounts + users/sessions). Returns summary."""
+        deleted_accounts = 0
+        deleted_sessions = 0
+
+        if self.is_firebase_active:
+            try:
+                # Delete all accounts
+                for doc in self._db.collection("accounts").stream():
+                    doc.reference.delete()
+                    deleted_accounts += 1
+
+                # Delete all users and their sessions
+                for user_doc in self._db.collection("users").stream():
+                    # Delete sub-collection sessions
+                    for sess_doc in user_doc.reference.collection("sessions").stream():
+                        sess_doc.reference.delete()
+                        deleted_sessions += 1
+                    user_doc.reference.delete()
+
+                logger.info("Cleared all records: %d accounts, %d sessions", deleted_accounts, deleted_sessions)
+            except Exception as exc:
+                logger.error("Firestore clear failed: %s", exc)
+
+        # Clear in-memory
+        mem_accounts = len(self._mem_accounts)
+        mem_sessions = sum(len(s) for s in self._mem.values())
+        self._mem_accounts.clear()
+        self._mem.clear()
+
+        return {
+            "deleted_accounts": deleted_accounts + mem_accounts,
+            "deleted_sessions": deleted_sessions + mem_sessions,
+        }
 
     # ═══════════════════════════════════════════════════════
     # Session CRUD
